@@ -1,11 +1,11 @@
 # Copyright (c) 2013 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
@@ -16,6 +16,7 @@ import os
 import sgtk
 from sgtk import TankError
 
+
 class MultiPerforce(sgtk.platform.Application):
 
     def init_app(self):
@@ -23,15 +24,15 @@ class MultiPerforce(sgtk.platform.Application):
         Called as the app is being initialized
         """
         self.log_debug("%s: Initializing..." % self)
-        
+
         # register commands:
-        self.engine.register_command("Perforce Connection...", self.show_connection_dlg)
-        
+        self.engine.register_command("Perforce Status", self.show_connection_dlg)
+
         # (TODO) - these commands aren't quite finished yet!
         #self.engine.register_command("Check Out Scene...", self.check_out_scene)
         #self.engine.register_command("Revert Changes...", self.revert_scene_changes)
         #self.engine.register_command("Show Pending Publishes...", self.show_pending_publishes)
-        
+
         # support connecting on startup:
         # Note, this runs every time the app is re-initialized (the engine is restarted).
         # however, the UI will only be shown when a connection can't be made with the
@@ -41,32 +42,32 @@ class MultiPerforce(sgtk.platform.Application):
             if connect_on_startup:
                 self.log_debug("Attempting to connect to Perforce...")
                 self.__connect_on_startup()
-        
+
     def destroy_app(self):
         """
         Called when the app is being cleaned up
         """
         self.log_debug("%s: Destroying..." % self)
-        
+
         self.log_debug("Destroying tk-multi-perforce")
-        
+
     def show_connection_dlg(self):
         """
         Show the Perforce connection details dialog.
         """
         tk_multi_perforce = self.import_module("tk_multi_perforce")
         tk_multi_perforce.open_connection(self)
-    
+
     def check_out_scene(self):
         """
         Check out the current scene from Perforce.
         """
         tk_multi_perforce = self.import_module("tk_multi_perforce")
         tk_multi_perforce.check_out_current_scene()
-    
+
     def revert_scene_changes(self):
         """
-        Discard any changes to the current scene and revert. 
+        Discard any changes to the current scene and revert.
         """
         tk_multi_perforce = self.import_module("tk_multi_perforce")
         tk_multi_perforce.revert_scene_changes()
@@ -86,15 +87,3 @@ class MultiPerforce(sgtk.platform.Application):
         """
         tk_multi_perforce = self.import_module("tk_multi_perforce")
         tk_multi_perforce.connect(self)
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
