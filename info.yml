@@ -1,47 +1,53 @@
 # Copyright (c) 2013 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 # Metadata defining the behaviour and requirements for this app
 
 # expected fields in the configuration file for this app
 configuration:
-            
+
     connect_on_startup:
         type: bool
         description: If set to True then the app will establish a connection at
                      start-up and present the connection/password dialog to the
-                     uesr if needed.  
+                     uesr if needed.
         default_value: True
-        
+
+    desktop_app_only:
+        type: bool
+        description: If set to True the app will only load the apps that are
+                     meant to appear in the SG Desktop Application and hide the others.
+        default_value: False
+
     hook_scene_operation:
         type: hook
         parameters: [operation, file_path]
         default_value: "scene_operation_{engine_name}"
-        description: All the application specific scene operations (open, save etc) that 
+        description: All the application specific scene operations (open, save etc) that
                      the app needs to carry out are collected in this hook.
-        
-            
+
+
 # the Shotgun fields that this app needs in order to operate correctly
 requires_shotgun_fields:
 
-# More verbose description of this item 
+# More verbose description of this item
 display_name: "Perforce"
 description: "This app provides common Perforce commands such as check-out and revert of the current
               scene, directly from the Shotgun menu.  Additionally, it also handles Perforce login
               on start-up and provides a command to help manage any pending publishes that are yet
               to be submitted to Perforce"
-              
+
 # Required minimum versions for this item to run
 requires_shotgun_version:
 requires_core_version: "v0.14.43"
-requires_engine_version: 
+requires_engine_version:
 
 # the engines that this app can operate in:
 supported_engines:
@@ -49,4 +55,3 @@ supported_engines:
 # the frameworks required to run this app
 frameworks:
     - {"name": "tk-framework-perforce", "version": "v0.x.x"}
-    

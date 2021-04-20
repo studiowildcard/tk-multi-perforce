@@ -26,12 +26,19 @@ class MultiPerforce(sgtk.platform.Application):
         self.log_debug("%s: Initializing..." % self)
 
         # register commands:
-        self.engine.register_command("Perforce Status", self.show_connection_dlg)
+        self.engine.register_command("Perforce Status...", self.show_connection_dlg)
+
+        if not self.get_setting("desktop_app_only"):
+            p = {
+                "title": "Perforce: Sync Files",
+                "supports_multiple_selection": True
+            }
+            self.engine.register_command("sync_files", self.sync_files, p)
 
         # (TODO) - these commands aren't quite finished yet!
-        #self.engine.register_command("Check Out Scene...", self.check_out_scene)
-        #self.engine.register_command("Revert Changes...", self.revert_scene_changes)
-        #self.engine.register_command("Show Pending Publishes...", self.show_pending_publishes)
+        # self.engine.register_command("Check Out Scene...", self.check_out_scene)
+        # self.engine.register_command("Revert Changes...", self.revert_scene_changes)
+        # self.engine.register_command("Show Pending Publishes...", self.show_pending_publishes)
 
         # support connecting on startup:
         # Note, this runs every time the app is re-initialized (the engine is restarted).
@@ -78,6 +85,12 @@ class MultiPerforce(sgtk.platform.Application):
         """
         tk_multi_perforce = self.import_module("tk_multi_perforce")
         tk_multi_perforce.show_pending_publishes()
+
+    def sync_files(self, entity_type, entity_ids):
+        """
+        """
+        tk_multi_perforce = self.import_module("tk_multi_perforce")
+        tk_multi_perforce.sync_files(self, entity_type, entity_ids)
 
     def __connect_on_startup(self):
         """
