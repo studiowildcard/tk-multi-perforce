@@ -47,17 +47,21 @@ def revert_scene_changes(app):
     pass
 
 
-def sync_files(app, entity_type, entity_ids):
+def open_sync_files_dialog(app, entity_type=None,  entity_ids=None):
+    """
+    Show the Perforce sync dialog
+    """
 
     assets = []
     parent_assets = []
-    depo_paths = []
+
+    sync_queue = []
 
     if entity_type == "Task":
-        assets = app.shotgun.find("Asset", [["tasks.Task.id", "in", entity_ids]], ["sg_asset_parent", "code"])
+        assets = app.shotgun.find("Asset", [["tasks.Task.id", "in", entity_ids]], ["sg_asset_parent", "image"])
 
     if entity_type == "Asset":
-        assets = app.shotgun.find("Asset", [['id', "in", entity_ids]], ["sg_asset_parent", "code"])
+        assets = app.shotgun.find("Asset", [['id', "in", entity_ids]], ["sg_asset_parent", "code", "image"])
 
     if assets:
         for a in assets:
@@ -69,24 +73,33 @@ def sync_files(app, entity_type, entity_ids):
         app.log_info("No valid assets were found.")
 
     if parent_assets:
+        
         asset_root_templ = app.sgtk.templates["asset_root"]
         for pa in parent_assets:
-            ctx = app.sgtk.context_from_entity(pa["type"], pa["id"])
-            template_fields = ctx.as_template_fields(asset_root_templ)
-            asset_root_path = asset_root_templ.apply_fields(template_fields, platform=sys.platform)
-            client_asset_root_path = os.path.join(asset_root_path, "...")
 
-            p4_fw = sgtk.platform.get_framework("tk-framework-perforce")
-            p4 = p4_fw.connection.connect()
-            p4_fw.util = p4_fw.import_module("util")
+            # constructing an item to pass info in case context resolution is not possible 
+            # (therefore P4 syncing would also not possible)
+            item = { "asset" : pa }
+            try:
+                ctx = app.sgtk.context_from_entity(pa["type"], pa["id"])
+                item['context'] = ctx.to_dict()
 
-            rsync = p4.run("sync", client_asset_root_path)
-            if rsync:
-                app.log_info("The following files were synced to your client workspace:")
-                for r in rsync:
-                    app.log_info(r["clientFile"])
-            else:
-                app.log_info("No files needed to be synced to your client workspace in:\n{}".format(client_asset_root_path))
+                template_fields = ctx.as_template_fields(asset_root_templ)
+                asset_root_path = asset_root_templ.apply_fields(template_fields, platform=sys.platform)
 
-    else:
-        app.log_info("No valid parent assets were found.")
+                client_asset_root_path = os.path.join(asset_root_path, "...")
+
+                item['root_path'] = client_asset_root_path
+                
+            except Exception as e:
+                # store exception so it's readily visible to users
+                item['error'] = e
+                app.log_info(e)
+            
+            sync_queue.append(item)
+    try:
+        p4_fw = sgtk.platform.get_framework("tk-framework-perforce")
+        p4_fw.sync.sync_with_dialog(sync_queue)
+    except:
+        app.log_exception("Failed to Open Sync dialog!")
+        return
