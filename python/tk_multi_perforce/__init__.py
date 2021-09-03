@@ -9,5 +9,5 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 from .connection import connect, open_connection
-from .operations import check_out_current_scene, revert_scene_changes, sync_files, open_sync_files_dialog
+from .operations import check_out_current_scene, revert_scene_changes, open_sync_files_dialog
 from .pending_publishes import show_pending_publishes
