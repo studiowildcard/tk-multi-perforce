@@ -47,11 +47,12 @@ def revert_scene_changes(app):
     pass
 
 
+
+
 def open_sync_files_dialog(app, entity_type=None,  entity_ids=None):
     """
     Show the Perforce sync dialog
     """
-
     assets = []
     parent_assets = []
 
@@ -61,7 +62,8 @@ def open_sync_files_dialog(app, entity_type=None,  entity_ids=None):
         assets = app.shotgun.find("Asset", [["tasks.Task.id", "in", entity_ids]], ["sg_asset_parent", "image"])
 
     if entity_type == "Asset":
-        assets = app.shotgun.find("Asset", [['id', "in", entity_ids]], ["sg_asset_parent", "code", "image"])
+        assets = app.shotgun.find("Asset", [['id', "in", entity_ids]], ["project.Project.code", "sg_asset_parent",
+                         "code", "image",  'sg_asset_library', 'sg_asset_type', 'sg_asset_category'])
 
     if assets:
         for a in assets:
@@ -73,20 +75,30 @@ def open_sync_files_dialog(app, entity_type=None,  entity_ids=None):
         app.log_info("No valid assets were found.")
 
     if parent_assets:
-        
         asset_root_templ = app.sgtk.templates["asset_root"]
         for pa in parent_assets:
+            ctx = app.sgtk.context_from_entity(pa["type"], pa["id"])
+            try:
+                fields = ctx.as_template_fields(asset_root_templ)
+            except Exception as int_e:
+                app.log_warning("Could not resolve from context: Using explicit fields instead.")
+                fields = {}
+                fields['Project'] = pa.get('project.Project.code')
+                fields['asset_library'] = pa.get('sg_asset_library').get('name')
+                fields['asset_type'] = pa.get('sg_asset_type')
+                fields['asset_category'] = pa.get('sg_asset_category')
+                fields['Asset'] = pa.get("code")
+
 
             # constructing an item to pass info in case context resolution is not possible 
             # (therefore P4 syncing would also not possible)
+
             item = { "asset" : pa }
+            item['context'] = ctx.to_dict()
+            #template = app.sgtk.templates.get()
+
             try:
-                ctx = app.sgtk.context_from_entity(pa["type"], pa["id"])
-                item['context'] = ctx.to_dict()
-
-                template_fields = ctx.as_template_fields(asset_root_templ)
-                asset_root_path = asset_root_templ.apply_fields(template_fields, platform=sys.platform)
-
+                asset_root_path = asset_root_templ.apply_fields(fields, platform=sys.platform) 
                 client_asset_root_path = os.path.join(asset_root_path, "...")
 
                 item['root_path'] = client_asset_root_path
