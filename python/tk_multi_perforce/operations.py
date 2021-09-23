@@ -16,7 +16,6 @@ import os
 import sys
 import pprint
 import sgtk
-from utils import TemplateRootResolver
 
 def check_out_current_scene(app):
     """
