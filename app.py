@@ -33,7 +33,7 @@ class MultiPerforce(sgtk.platform.Application):
                 "title": "Perforce: Sync Files",
                 "supports_multiple_selection": True
             }
-            self.engine.register_command("Perforce: Sync Files", self.sync_files, p)
+            self.engine.register_command("sync_files", self.sync_files, p)
 
         # (TODO) - these commands aren't quite finished yet!
         # self.engine.register_command("Check Out Scene...", self.check_out_scene)

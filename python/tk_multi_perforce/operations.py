@@ -51,13 +51,17 @@ def open_sync_files_dialog(app, entity_type=None,  entity_ids=None):
     """
     Prepare asset root paths to search in p4 and show the Perforce sync dialog
     """
-                    
-    root_resolver = TemplateRootResolver(app, entity_type, entity_ids)
-    entities_and_root_dirs = root_resolver.resolve()
 
+    if entity_type == "Task":
+        tasks = app.shotgun.find(entity_type, [['id', 'in', entity_ids]], ['entity'])
+        entities_to_sync = [i.get('entity') for i in tasks if i.get('entity')]
+    else:
+        entities_to_sync = [{"type": entity_type, "id": id} for id in entity_ids]
+
+    
     try:
         p4_fw = sgtk.platform.get_framework("tk-framework-perforce")
-        p4_fw.sync.sync_with_dialog(entities_and_root_dirs)
+        p4_fw.sync.sync_with_dialog(app, entities_to_sync)
     except:
         app.log_exception("Failed to Open Sync dialog!")
         return
