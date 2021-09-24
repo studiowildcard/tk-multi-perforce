@@ -33,7 +33,7 @@ class MultiPerforce(sgtk.platform.Application):
                 "title": "Perforce: Sync Files",
                 "supports_multiple_selection": True
             }
-            self.engine.register_command("sync_files", self.sync_files, p)
+            self.engine.register_command("Perforce: Sync Files", self.sync_files, p)
 
         # (TODO) - these commands aren't quite finished yet!
         # self.engine.register_command("Check Out Scene...", self.check_out_scene)
@@ -90,6 +90,11 @@ class MultiPerforce(sgtk.platform.Application):
         """
         Show Perforce Sync Status Window
         """
+        if not entity_type:
+            if self.context.entity:
+                entity_type = self.context.entity.get('type')
+                entity_ids = [self.context.entity.get('id')]
+
         tk_multi_perforce = self.import_module("tk_multi_perforce")
         tk_multi_perforce.open_sync_files_dialog(self, entity_type, entity_ids)
 
