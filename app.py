@@ -90,11 +90,6 @@ class MultiPerforce(sgtk.platform.Application):
         """
         Show Perforce Sync Status Window
         """
-        if not entity_type:
-            if self.context.entity:
-                entity_type = self.context.entity.get('type')
-                entity_ids = [self.context.entity.get('id')]
-
         tk_multi_perforce = self.import_module("tk_multi_perforce")
         tk_multi_perforce.open_sync_files_dialog(self, entity_type, entity_ids)
 
