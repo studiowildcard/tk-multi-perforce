@@ -76,9 +76,11 @@ def open_sync_files_dialog(app, entity_type=None,  entity_ids=None):
         # we look for all project tasks assigned to the current user
         user = app.context.user
         user_tasks = app.context.sgtk.shotgun.find("Task", 
-                                                   [["task_assignees", "is", user],["project", "is", app.context.project]], 
-                                                   ["entity"])
-    
+                                                   [["task_assignees", "is", user],
+                                                   ["project", "is", app.context.project],
+                                                   ['sg_status_list', 'in', ['rdy', 'ip']]],
+                                                   ["entity", "sg_status_list"])
+
         # look through all the possible entity links to these tasks, and keep all the unique ones to send to the UI
         user_assets = []
         uids = []
