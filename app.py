@@ -15,6 +15,8 @@ General Perforce connection commands
 import os
 import sgtk
 from sgtk import TankError
+import traceback
+
 
 
 class MultiPerforce(sgtk.platform.Application):
@@ -35,6 +37,7 @@ class MultiPerforce(sgtk.platform.Application):
             }
             self.engine.register_command("Perforce: Sync Files", self.sync_files, p)
 
+
         # (TODO) - these commands aren't quite finished yet!
         # self.engine.register_command("Check Out Scene...", self.check_out_scene)
         # self.engine.register_command("Revert Changes...", self.revert_scene_changes)
@@ -50,6 +53,28 @@ class MultiPerforce(sgtk.platform.Application):
                 self.log_debug("Attempting to connect to Perforce...")
                 self.__connect_on_startup()
 
+
+    def handle_connection_error(self, force_banner=None):
+        """
+        Show banner notifying user of Perforce connection issue. 
+        :param: force_banner: Utilize this when the UI is already fully loaded
+            but you still need to trigger a banner update. 
+        """
+        # trigger a visible banner in SG Desktop
+        if self.engine.name in ['tk-desktop']:
+            
+            log_location = sgtk.log.LogManager().log_folder.replace("\\", "/")
+            banner_message = "<br><center><font color='red'><b>Warning!</b></font> Could not connect to Perforce server."\
+                "<br>See <b>tk-desktop</b> <a href='file:///{}'>logs.</a> locating lines for [<i>{}</i>]<br>"\
+                "Or open the Console from this app.<br>".format(log_location, self.name)
+
+            if force_banner:
+                self.engine._project_comm.call_no_response("update_banners", banner_message)
+            else:
+                os.environ['SGTK_DESKTOP_PROJECT_BANNER_MESSAGE'] = banner_message
+
+        self.log_error("tk-multi-perforce is unable to load: {}".format(traceback.format_exc()))
+
     def destroy_app(self):
         """
         Called when the app is being cleaned up
@@ -62,8 +87,12 @@ class MultiPerforce(sgtk.platform.Application):
         """
         Show the Perforce connection details dialog.
         """
-        tk_multi_perforce = self.import_module("tk_multi_perforce")
-        tk_multi_perforce.open_connection(self)
+        try:
+            tk_multi_perforce = self.import_module("tk_multi_perforce")
+            tk_multi_perforce.connect(self)
+            tk_multi_perforce.open_connection(self)
+        except Exception as e:
+            self.handle_connection_error(force_banner=True)
 
     def check_out_scene(self):
         """
@@ -90,8 +119,13 @@ class MultiPerforce(sgtk.platform.Application):
         """
         Show Perforce Sync Status Window
         """
-        tk_multi_perforce = self.import_module("tk_multi_perforce")
-        tk_multi_perforce.open_sync_files_dialog(self, entity_type, entity_ids)
+        try:
+            tk_multi_perforce = self.import_module("tk_multi_perforce")
+            tk_multi_perforce.connect(self)
+            tk_multi_perforce.open_sync_files_dialog(self, entity_type, entity_ids)
+        except Exception as e:
+            self.handle_connection_error(force_banner=True)
+        
 
     def __connect_on_startup(self):
         """
@@ -99,5 +133,9 @@ class MultiPerforce(sgtk.platform.Application):
         can be established.  Prompts the user for password/connection details
         if needed
         """
-        tk_multi_perforce = self.import_module("tk_multi_perforce")
-        tk_multi_perforce.connect(self)
+        try:
+            tk_multi_perforce = self.import_module("tk_multi_perforce")
+            tk_multi_perforce.connect(self)
+        except Exception as e:
+            self.handle_connection_error()
+
