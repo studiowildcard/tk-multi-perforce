@@ -89,9 +89,8 @@ class MultiPerforce(sgtk.platform.Application):
         """
         try:
             tk_multi_perforce = self.import_module("tk_multi_perforce")
-            tk_multi_perforce.connect(self)
             tk_multi_perforce.open_connection(self)
-        except Exception as e:
+        except:
             self.handle_connection_error(force_banner=True)
 
     def check_out_scene(self):
@@ -123,7 +122,7 @@ class MultiPerforce(sgtk.platform.Application):
             tk_multi_perforce = self.import_module("tk_multi_perforce")
             tk_multi_perforce.connect(self)
             tk_multi_perforce.open_sync_files_dialog(self, entity_type, entity_ids)
-        except Exception as e:
+        except:
             self.handle_connection_error(force_banner=True)
         
 
@@ -136,6 +135,6 @@ class MultiPerforce(sgtk.platform.Application):
         try:
             tk_multi_perforce = self.import_module("tk_multi_perforce")
             tk_multi_perforce.connect(self)
-        except Exception as e:
+        except:
             self.handle_connection_error()
 
