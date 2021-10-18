@@ -65,8 +65,7 @@ class MultiPerforce(sgtk.platform.Application):
             
             log_location = sgtk.log.LogManager().log_folder.replace("\\", "/")
             banner_message = "<br><center><font color='red'><b>Warning!</b></font> Could not connect to Perforce server."\
-                "<br>See <b>tk-desktop</b> <a href='file:///{}'>logs.</a> locating lines for [<i>{}</i>]<br>"\
-                "Or open the Console from this app.<br>".format(log_location, self.name)
+                "<br>See <b>tk-desktop</b> <a href='file:///{}'>logs.</a> locating lines for [<i>{}</i>]".format(log_location, self.name)
 
             if force_banner:
                 self.engine._project_comm.call_no_response("update_banners", banner_message)
