@@ -56,11 +56,10 @@ def open_sync_files_dialog(app, entity_type=None,  entity_ids=None):
         # if a single task were selected, or launched from a task detail page
         if entity_type == "Task":
             tasks = app.shotgun.find(entity_type, [['id', 'in', entity_ids]], ['entity'])
-            entities_to_sync = [i.get('entity') for i in tasks if i.get('entity')]
-            entity_type = entities_to_sync[0].get('type')
+            entities_to_sync = entities_from_tasks(app, tasks)
 
         # if assets were selected, make sure we have all the top level assets from child selections
-        if entity_type == "Asset":
+        elif entity_type == "Asset":
             ids = []
             assets = app.shotgun.find(entity_type, [['id', 'in', entity_ids]], ['sg_asset_parent'])
             parent_asset_ids = ids.extend([i.get('sg_asset_parent').get('id') for i in assets if i.get('sg_asset_parent')])
@@ -83,20 +82,37 @@ def open_sync_files_dialog(app, entity_type=None,  entity_ids=None):
 
         # look through all the possible entity links to these tasks, and keep all the unique ones to send to the UI
         user_assets = []
-        uids = []
-        for task in user_tasks:
-            linked_entity = task.get('entity')
-            if linked_entity:
-                uid = "{}_{}".format(linked_entity.get('type'), linked_entity.get('id'))
-                if uid not in uids:
-                    uids.append(uid)
-                    entities_to_sync.append(linked_entity)
-    
+        entities_to_sync = entities_from_tasks(app, user_tasks)
+
     try:
         p4_fw = sgtk.platform.get_framework("tk-framework-perforce")
         p4_fw.sync.sync_with_dialog(app, entities_to_sync)
     except:
         app.log_exception("Failed to Open Sync dialog!")
         return
+
+def entities_from_tasks(app, tasks):
+    entities_to_sync = []
+    uids = []
+    if tasks:
+        for task in tasks:
+            linked_entity = task.get('entity')
+            if linked_entity:
+                uid = "{}_{}".format(linked_entity.get('type'), linked_entity.get('id'))
+                if uid not in uids:
+                    uids.append(uid)
+                    entities_to_sync.append(linked_entity)   
+                    if(linked_entity.get('type') == "Asset"):
+                        ids = []
+                        assets = app.shotgun.find(linked_entity.get('type'), [['id', 'in', [linked_entity.get('id')]]], ['sg_asset_parent'])
+                        parent_asset_ids = ids.extend([i.get('sg_asset_parent').get('id') for i in assets if i.get('sg_asset_parent')])
+                        asset_ids = ids.extend([i.get('id') for i in assets if not i.get('sg_asset_parent')])   
+                        for id in list(set(ids)): 
+                            uid = "{}_{}".format(linked_entity.get('type'), id)
+                            if uid not in uids:
+                                uids.append(uid)                        
+                                entities_to_sync.append({"type": linked_entity.get('type'), "id": id})
+
+    return entities_to_sync
 
    
