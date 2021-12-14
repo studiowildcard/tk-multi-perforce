@@ -52,6 +52,9 @@ def open_sync_files_dialog(app, entity_type=None,  entity_ids=None):
     """
     entities_to_sync = []
 
+    synclog = app.engine.sgtk.synchronize_filesystem_structure()
+    app.log_debug(f"Synced Folders: {synclog}")
+    
     if entity_type:
         # if a single task were selected, or launched from a task detail page
         if entity_type == "Task":
