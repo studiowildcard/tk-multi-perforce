@@ -50,8 +50,9 @@ def open_sync_files_dialog(app, entity_type=None,  entity_ids=None):
     """
     Prepare assets to send to the P4 Sync window to process
     """
+    specific_files = False
     entities_to_sync = []
-
+    
     if entity_type:
         # if a single task were selected, or launched from a task detail page
         if entity_type == "Task":
@@ -67,9 +68,17 @@ def open_sync_files_dialog(app, entity_type=None,  entity_ids=None):
             entities_to_sync = [{"type": entity_type, "id": id} for id in list(set(ids))]
             app.log_info(entities_to_sync)
 
+        if entity_type == "PublishedFile":
+            specific_files = True
+            ids = []
+            pfiles = app.shotgun.find(entity_type, [['id', 'in', entity_ids]], ['entity', 'path_cache', 'path']) 
+            entities_to_sync = pfiles
+            app.log_info(entities_to_sync)
+
         # for other entity types, return the list of entity objects unmodified
         else:
             entities_to_sync = [{"type": entity_type, "id": id} for id in entity_ids]
+
         
     else: # if user launching without context
         # we look for all project tasks assigned to the current user
@@ -86,7 +95,7 @@ def open_sync_files_dialog(app, entity_type=None,  entity_ids=None):
 
     try:
         p4_fw = sgtk.platform.get_framework("tk-framework-perforce")
-        p4_fw.sync.sync_with_dialog(app, entities_to_sync)
+        p4_fw.sync.sync_with_dialog(app, entities_to_sync, specific_files)
     except:
         app.log_exception("Failed to Open Sync dialog!")
         return
