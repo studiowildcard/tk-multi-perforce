@@ -71,7 +71,7 @@ def open_sync_files_dialog(app, entity_type=None,  entity_ids=None):
             entities_to_sync = [{"type": entity_type, "id": id} for id in list(set(ids))]
             app.log_info(entities_to_sync)
 
-        if entity_type == "PublishedFile":
+        elif entity_type == "PublishedFile":
             specific_files = True
             ids = []
             pfiles = app.shotgun.find(entity_type, [['id', 'in', entity_ids]], ['entity', 'path_cache', 'path']) 
