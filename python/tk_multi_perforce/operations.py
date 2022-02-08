@@ -71,10 +71,20 @@ def open_sync_files_dialog(app, entity_type=None,  entity_ids=None):
 
         if entity_type == "PublishedFile":
             specific_files = True
-            ids = []
             pfiles = app.shotgun.find(entity_type, [['id', 'in', entity_ids]], ['entity', 'path_cache', 'path']) 
             entities_to_sync = pfiles
             app.log_info(entities_to_sync)
+
+        if entity_type == "Sequence":
+            ids = []
+            asset_ids = []
+            seqs = app.shotgun.find("Sequence", [['id', 'in', entity_ids]], ["assets"])
+            for seq in seqs:
+                asset_ids.extend([i.get('id') for i in seq.get('assets')])
+            assets = app.shotgun.find('Asset', [['id', 'in', asset_ids]], ['sg_asset_parent'])
+            parent_asset_ids = ids.extend([i.get('sg_asset_parent').get('id') for i in assets if i.get('sg_asset_parent')])
+            asset_ids = ids.extend([i.get('id') for i in assets if not i.get('sg_asset_parent')])    
+            entities_to_sync = [{"type": entity_type, "id": id} for id in list(set(ids))]
 
         # for other entity types, return the list of entity objects unmodified
         else:
