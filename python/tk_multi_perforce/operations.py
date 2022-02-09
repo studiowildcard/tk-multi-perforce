@@ -77,7 +77,7 @@ def open_sync_files_dialog(app, entity_type=None,  entity_ids=None):
             entities_to_sync = pfiles
             app.log_info(entities_to_sync)
 
-        if entity_type == "Sequence":
+        elif entity_type == "Sequence":
             ids = []
             asset_ids = []
             seqs = app.shotgun.find("Sequence", [['id', 'in', entity_ids]], ["assets"])
