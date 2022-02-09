@@ -52,6 +52,9 @@ def open_sync_files_dialog(app, entity_type=None,  entity_ids=None):
     """
     specific_files = False
     entities_to_sync = []
+
+    synclog = app.engine.sgtk.synchronize_filesystem_structure()
+    app.log_debug(f"Synced Folders: {synclog}")
     
     if entity_type:
         # if a single task were selected, or launched from a task detail page
@@ -68,13 +71,13 @@ def open_sync_files_dialog(app, entity_type=None,  entity_ids=None):
             entities_to_sync = [{"type": entity_type, "id": id} for id in list(set(ids))]
             app.log_info(entities_to_sync)
 
-        if entity_type == "PublishedFile":
+        elif entity_type == "PublishedFile":
             specific_files = True
             pfiles = app.shotgun.find(entity_type, [['id', 'in', entity_ids]], ['entity', 'path_cache', 'path']) 
             entities_to_sync = pfiles
             app.log_info(entities_to_sync)
 
-        if entity_type == "Sequence":
+        elif entity_type == "Sequence":
             ids = []
             asset_ids = []
             seqs = app.shotgun.find("Sequence", [['id', 'in', entity_ids]], ["assets"])
