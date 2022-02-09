@@ -124,7 +124,7 @@ def entities_from_tasks(app, tasks):
             if linked_entity:
                 uid = "{}_{}".format(linked_entity.get('type'), linked_entity.get('id'))
 
-                if linked_entity.get('type') in ["Asset", "Sequence"]:
+                if linked_entity.get('type') in ["Asset", "Sequence", "Shot"]:
                     ids = []
                     if (linked_entity.get('type') == "Asset"):
                         if uid not in uids:
@@ -133,6 +133,13 @@ def entities_from_tasks(app, tasks):
                         entities_to_sync.append(linked_entity) 
                         assets = app.shotgun.find(linked_entity.get('type'), [['id', 'in', [linked_entity.get('id')]]], ['sg_asset_parent'])
                     # for sequences we'll need to get which assets are linked to those sequence tasks
+
+                    elif (linked_entity.get('type') == "Shot"):
+                        shot = app.shotgun.find_one("Shot", [['id', 'in', [linked_entity.get('id')]]], ['sg_sequence.Sequence.assets']) 
+                        if shot.get('sg_sequence.Sequence.assets'):
+                            asset_ids = [i.get('id') for i in shot.get('sg_sequence.Sequence.assets')]
+                            assets = app.shotgun.find("Asset", [['id', 'in', asset_ids]], ['sg_asset_parent'])
+
                     elif (linked_entity.get('type') == "Sequence"):
                         seq = app.shotgun.find_one("Sequence", [['id', 'in', [linked_entity.get('id')]]], ['assets']) 
                         if seq.get('assets'):
