@@ -13,9 +13,11 @@ General Perforce operations supported by the app
 """
 
 import os
-import sys
 import pprint
+import sys
+
 import sgtk
+
 
 def check_out_current_scene(app):
     """
@@ -121,19 +123,29 @@ def entities_from_tasks(app, tasks):
             linked_entity = task.get('entity')
             if linked_entity:
                 uid = "{}_{}".format(linked_entity.get('type'), linked_entity.get('id'))
-                if uid not in uids:
-                    uids.append(uid)
-                    entities_to_sync.append(linked_entity)   
-                    if(linked_entity.get('type') == "Asset"):
-                        ids = []
+
+                if linked_entity.get('type') in ["Asset", "Sequence"]:
+                    ids = []
+                    if (linked_entity.get('type') == "Asset"):
+                        if uid not in uids:
+                            uids.append(uid)
+                            
+                        entities_to_sync.append(linked_entity) 
                         assets = app.shotgun.find(linked_entity.get('type'), [['id', 'in', [linked_entity.get('id')]]], ['sg_asset_parent'])
-                        parent_asset_ids = ids.extend([i.get('sg_asset_parent').get('id') for i in assets if i.get('sg_asset_parent')])
-                        asset_ids = ids.extend([i.get('id') for i in assets if not i.get('sg_asset_parent')])   
-                        for id in list(set(ids)): 
-                            uid = "{}_{}".format(linked_entity.get('type'), id)
-                            if uid not in uids:
-                                uids.append(uid)                        
-                                entities_to_sync.append({"type": linked_entity.get('type'), "id": id})
+                    # for sequences we'll need to get which assets are linked to those sequence tasks
+                    elif (linked_entity.get('type') == "Sequence"):
+                        seq = app.shotgun.find_one("Sequence", [['id', 'in', [linked_entity.get('id')]]], ['assets']) 
+                        if seq.get('assets'):
+                            assets = app.shotgun.find("Asset", [['id', 'in', [i.get('id') for i in seq.get('assets')]]], ['sg_asset_parent'])
+                
+                    ids.extend([i.get('sg_asset_parent').get('id') for i in assets if i.get('sg_asset_parent')])
+                    ids.extend([i.get('id') for i in assets if not i.get('sg_asset_parent')])   
+                    for id in list(set(ids)): 
+                        uid = "{}_{}".format("Asset", id)
+                        if uid not in uids:
+                            uids.append(uid)                        
+                            entities_to_sync.append({"type": "Asset", "id": id})
+
 
     return entities_to_sync
 
