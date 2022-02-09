@@ -65,7 +65,7 @@ def open_sync_files_dialog(app, entity_type=None,  entity_ids=None):
         # if assets were selected, make sure we have all the top level assets from child selections
         elif entity_type == "Asset":
             ids = []
-            assets = app.shotgun.find(entity_type, [['id', 'in', entity_ids]], ['sg_asset_parent'])
+            assets = app.shotgun.find(entity_type, [['id', 'in', entity_ids]], ['sg_asset_parent', 'code'])
             parent_asset_ids = ids.extend([i.get('sg_asset_parent').get('id') for i in assets if i.get('sg_asset_parent')])
             asset_ids = ids.extend([i.get('id') for i in assets if not i.get('sg_asset_parent')])    
             entities_to_sync = [{"type": entity_type, "id": id} for id in list(set(ids))]
@@ -83,10 +83,10 @@ def open_sync_files_dialog(app, entity_type=None,  entity_ids=None):
             seqs = app.shotgun.find("Sequence", [['id', 'in', entity_ids]], ["assets"])
             for seq in seqs:
                 asset_ids.extend([i.get('id') for i in seq.get('assets')])
-            assets = app.shotgun.find('Asset', [['id', 'in', asset_ids]], ['sg_asset_parent'])
+            assets = app.shotgun.find('Asset', [['id', 'in', asset_ids]], ['sg_asset_parent', 'code'])
             parent_asset_ids = ids.extend([i.get('sg_asset_parent').get('id') for i in assets if i.get('sg_asset_parent')])
             asset_ids = ids.extend([i.get('id') for i in assets if not i.get('sg_asset_parent')])    
-            entities_to_sync = [{"type": entity_type, "id": id} for id in list(set(ids))]
+            entities_to_sync = [{"type": "Asset", "id": id} for id in list(set(ids))]
 
         # for other entity types, return the list of entity objects unmodified
         else:
