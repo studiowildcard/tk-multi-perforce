@@ -105,6 +105,7 @@ def open_sync_files_dialog(app, entity_type=None,  entity_ids=None):
                                                    ["entity", "sg_status_list"])
 
         # look through all the possible entity links to these tasks, and keep all the unique ones to send to the UI
+        app.log_debug(f"Syncing Task IDs {user_tasks}")
         user_assets = []
         entities_to_sync = entities_from_tasks(app, user_tasks)
 
