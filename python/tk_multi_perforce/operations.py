@@ -12,7 +12,6 @@
 General Perforce operations supported by the app
 """
 
-
 import os
 import pprint
 import sys
@@ -55,7 +54,6 @@ def open_sync_files_dialog(app, entity_type=None,  entity_ids=None):
     """
     specific_files = False
     entities_to_sync = []
-    child_asset_ids = []
 
     synclog = app.engine.sgtk.synchronize_filesystem_structure()
     app.log_debug(f"Synced Folders: {synclog}")
@@ -64,14 +62,13 @@ def open_sync_files_dialog(app, entity_type=None,  entity_ids=None):
         # if a single task were selected, or launched from a task detail page
         if entity_type == "Task":
             tasks = app.shotgun.find(entity_type, [['id', 'in', entity_ids]], ['entity'])
-            entities_to_sync, child_asset_ids = entities_from_tasks(app, tasks)
+            entities_to_sync = entities_from_tasks(app, tasks)
 
         # if assets were selected, make sure we have all the top level assets from child selections
         elif entity_type == "Asset":
             ids = []
             assets = app.shotgun.find(entity_type, [['id', 'in', entity_ids]], ['sg_asset_parent', 'code'])
-            child_asset_ids = [i.get('sg_asset_parent').get('id') for i in assets if i.get('sg_asset_parent')]
-            ids.extend(child_asset_ids)
+            parent_asset_ids = ids.extend([i.get('sg_asset_parent').get('id') for i in assets if i.get('sg_asset_parent')])
             asset_ids = ids.extend([i.get('id') for i in assets if not i.get('sg_asset_parent')])    
             entities_to_sync = [{"type": entity_type, "id": id} for id in list(set(ids))]
             app.log_info(entities_to_sync)
@@ -89,8 +86,7 @@ def open_sync_files_dialog(app, entity_type=None,  entity_ids=None):
             for seq in seqs:
                 asset_ids.extend([i.get('id') for i in seq.get('assets')])
             assets = app.shotgun.find('Asset', [['id', 'in', asset_ids]], ['sg_asset_parent', 'code'])
-            child_asset_ids = [i.get('sg_asset_parent').get('id') for i in assets if i.get('sg_asset_parent')]
-            ids.extend(child_asset_ids)
+            parent_asset_ids = ids.extend([i.get('sg_asset_parent').get('id') for i in assets if i.get('sg_asset_parent')])
             asset_ids = ids.extend([i.get('id') for i in assets if not i.get('sg_asset_parent')])    
             entities_to_sync = [{"type": "Asset", "id": id} for id in list(set(ids))]
 
@@ -110,11 +106,11 @@ def open_sync_files_dialog(app, entity_type=None,  entity_ids=None):
 
         # look through all the possible entity links to these tasks, and keep all the unique ones to send to the UI
         user_assets = []
-        entities_to_sync, child_asset_ids = entities_from_tasks(app, user_tasks)
+        entities_to_sync = entities_from_tasks(app, user_tasks)
 
     try:
         p4_fw = sgtk.platform.get_framework("tk-framework-perforce")
-        p4_fw.sync.sync_with_dialog(app, entities_to_sync, specific_files, child_asset_ids)
+        p4_fw.sync.sync_with_dialog(app, entities_to_sync, specific_files)
     except:
         app.log_exception("Failed to Open Sync dialog!")
         return
@@ -122,7 +118,6 @@ def open_sync_files_dialog(app, entity_type=None,  entity_ids=None):
 def entities_from_tasks(app, tasks):
     entities_to_sync = []
     uids = []
-    children = []
     if tasks:
         for task in tasks:
             linked_entity = task.get('entity')
@@ -159,9 +154,7 @@ def entities_from_tasks(app, tasks):
                             assets = app.shotgun.find("Asset", [['id', 'in', [i.get('id') for i in seq.get('assets')]]], ['sg_asset_parent'])
 
                     # identify the parent asset if one exists
-                    child_assets = [i.get('sg_asset_parent').get('id') for i in assets if i.get('sg_asset_parent')]
-                    children.extend(child_assets)
-                    # ids.extend(_assets)
+                    ids.extend([i.get('sg_asset_parent').get('id') for i in assets if i.get('sg_asset_parent')])
                     ids.extend([i.get('id') for i in assets if not i.get('sg_asset_parent')])   
 
                     # add all assets discovered if uid key not already in the dict. 
@@ -172,6 +165,6 @@ def entities_from_tasks(app, tasks):
                             entities_to_sync.append({"type": "Asset", "id": id})      
 
 
-    return entities_to_sync, children
+    return entities_to_sync
 
    
