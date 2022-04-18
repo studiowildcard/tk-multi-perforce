@@ -15,6 +15,7 @@ General Perforce operations supported by the app
 import os
 import pprint
 import sys
+import traceback
 
 import sgtk
 
@@ -111,9 +112,11 @@ def open_sync_files_dialog(app, entity_type=None,  entity_ids=None):
     try:
         p4_fw = sgtk.platform.get_framework("tk-framework-perforce")
         p4_fw.sync.sync_with_dialog(app, entities_to_sync, specific_files)
-    except:
-        app.log_exception("Failed to Open Sync dialog!")
-        return
+    except Exception:
+        import traceback
+        app.log_error("Failed to Open Sync dialog!")
+        app.log_error(traceback.format_exc())
+   
 
 def entities_from_tasks(app, tasks):
     entities_to_sync = []
