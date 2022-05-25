@@ -125,7 +125,7 @@ def entities_from_tasks(app, tasks):
             if linked_entity:
                 uid = "{}_{}".format(linked_entity.get('type'), linked_entity.get('id'))
 
-                if linked_entity.get('type') in ["Asset", "Sequence", "Shot", "CustomEntity01"]:
+                if linked_entity.get('type') in ["Asset", "Sequence", "Shot", "CustomEntity01", "CustomEntity03"]:
                     ids = []
                     assets = []
                     env_asset = None
