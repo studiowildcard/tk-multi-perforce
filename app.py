@@ -37,6 +37,8 @@ class MultiPerforce(sgtk.platform.Application):
             }
             self.engine.register_command("Perforce: Sync Files", self.sync_files, p)
 
+            self.engine.register_command("Perforce: MVC Test", self.mvc_test)
+
 
         # (TODO) - these commands aren't quite finished yet!
         # self.engine.register_command("Check Out Scene...", self.check_out_scene)
@@ -73,6 +75,16 @@ class MultiPerforce(sgtk.platform.Application):
                 os.environ['SGTK_DESKTOP_PROJECT_BANNER_MESSAGE'] = banner_message
 
         self.log_error("tk-multi-perforce is unable to load: {}".format(traceback.format_exc()))
+
+    @property
+    def tk_multi_perforce(self):
+        tk_multi_perforce = self.import_module("tk_multi_perforce")
+        if tk_multi_perforce:
+            return tk_multi_perforce
+    
+    @property
+    def module(self):
+        return self.tk_multi_perforce
 
     def destroy_app(self):
         """
@@ -121,6 +133,15 @@ class MultiPerforce(sgtk.platform.Application):
             tk_multi_perforce = self.import_module("tk_multi_perforce")
             tk_multi_perforce.connect(self)
             tk_multi_perforce.open_sync_files_dialog(self, entity_type, entity_ids)
+        except:
+            self.handle_connection_error(force_banner=True)
+
+    def mvc_test(self, entity_type=None, entity_ids=None):
+        """
+        Show MVC Test
+        """
+        try:
+            self.module.open_mvc_test_dialog(self)
         except:
             self.handle_connection_error(force_banner=True)
         

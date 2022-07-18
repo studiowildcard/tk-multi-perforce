@@ -48,6 +48,12 @@ def revert_scene_changes(app):
     """
     pass
 
+def open_mvc_test_dialog(app):
+    """
+    """
+    p4_fw = sgtk.platform.get_framework("tk-framework-perforce")
+    p4_fw.sync.sync_with_dialog(app, mvc=True)
+
 
 def open_sync_files_dialog(app, entity_type=None,  entity_ids=None):
     """
