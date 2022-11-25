@@ -36,10 +36,14 @@ def open_connection(app):
 
     try:
         p4_fw = sgtk.platform.get_framework("tk-framework-perforce")
-        p4_fw.connection.connect_with_dialog()
+        result = p4_fw.connection.connect_with_dialog()
+        return result
+
     except:
         app.log_exception("Failed to Open Connection dialog!")
         raise Exception("Failed to Open Connection dialog!")
+
+
 
 
     

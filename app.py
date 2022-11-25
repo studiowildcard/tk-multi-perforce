@@ -104,12 +104,13 @@ class MultiPerforce(sgtk.platform.Application):
         """
         try:
             tk_multi_perforce = self.import_module("tk_multi_perforce")
-            tk_multi_perforce.open_connection(self)
+            result = tk_multi_perforce.open_connection(self)
+            if result:
+                self.log_debug("Connection to Perforce server is successful!")
+                self.handle_connection_success(force_banner=True)
+
         except:
             self.handle_connection_error(force_banner=True)
-        else:
-            self.log_debug("Connection to Perforce server is successful!")
-            self.handle_connection_success(force_banner=True)
 
     def check_out_scene(self):
         """
