@@ -21,6 +21,7 @@ import traceback
 
 class MultiPerforce(sgtk.platform.Application):
 
+
     def init_app(self):
         """
         Called as the app is being initialized
@@ -64,15 +65,30 @@ class MultiPerforce(sgtk.platform.Application):
         if self.engine.name in ['tk-desktop']:
             
             log_location = sgtk.log.LogManager().log_folder.replace("\\", "/")
-            banner_message = "<br><center><font color='red'><b>Warning!</b></font> Could not connect to Perforce server."\
+            self.banner_error_message = "<br><center><font color='red'><b>Warning!</b></font> Could not connect to Perforce server."\
                 "<br>See <b>tk-desktop</b> <a href='file:///{}'>logs.</a> locating lines for [<i>{}</i>]<br>".format(log_location, self.name)
-
+            force_banner = False
             if force_banner:
-                self.engine._project_comm.call_no_response("update_banners", banner_message)
+                self.engine._project_comm.call_no_response("update_banners", self.banner_error_message)
             else:
-                os.environ['SGTK_DESKTOP_PROJECT_BANNER_MESSAGE'] = banner_message
+                os.environ['SGTK_DESKTOP_PROJECT_BANNER_MESSAGE'] = self.banner_error_message
+
 
         self.log_error("tk-multi-perforce is unable to load: {}".format(traceback.format_exc()))
+
+    def handle_connection_success(self, force_banner=None):
+        # trigger a visible banner in SG Desktop
+        if self.engine.name in ['tk-desktop']:
+
+            log_location = sgtk.log.LogManager().log_folder.replace("\\", "/")
+            self.banner_success_message = "<br><center><font color='blue'><b>Success!</b></font> Connection to Perforce server is successful." \
+                             "<br>See <b>tk-desktop</b> <a href='file:///{}'>logs.</a> locating lines for [<i>{}</i>]<br>".format(
+                log_location, self.name)
+
+            if force_banner:
+                self.engine._project_comm.call_no_response("update_banners", self.banner_success_message)
+            else:
+                os.environ['SGTK_DESKTOP_PROJECT_BANNER_MESSAGE'] = self.banner_success_message
 
     def destroy_app(self):
         """
@@ -91,6 +107,9 @@ class MultiPerforce(sgtk.platform.Application):
             tk_multi_perforce.open_connection(self)
         except:
             self.handle_connection_error(force_banner=True)
+        else:
+            self.log_debug("Connection to Perforce server is successful!")
+            self.handle_connection_success(force_banner=True)
 
     def check_out_scene(self):
         """
