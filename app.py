@@ -18,9 +18,7 @@ from sgtk import TankError
 import traceback
 
 
-
 class MultiPerforce(sgtk.platform.Application):
-
     def init_app(self):
         """
         Called as the app is being initialized
@@ -31,12 +29,8 @@ class MultiPerforce(sgtk.platform.Application):
         self.engine.register_command("Perforce Status...", self.show_connection_dlg)
 
         if not self.get_setting("desktop_app_only"):
-            p = {
-                "title": "Perforce: Sync Files",
-                "supports_multiple_selection": True
-            }
+            p = {"title": "Perforce: Sync Files", "supports_multiple_selection": True}
             self.engine.register_command("Perforce: Sync Files", self.sync_files, p)
-
 
         # (TODO) - these commands aren't quite finished yet!
         # self.engine.register_command("Check Out Scene...", self.check_out_scene)
@@ -53,26 +47,48 @@ class MultiPerforce(sgtk.platform.Application):
                 self.log_debug("Attempting to connect to Perforce...")
                 self.__connect_on_startup()
 
+        # now register a *command*, which is normally a menu entry of some kind on a Shotgun
+        # menu (but it depends on the engine). The engine will manage this command and
+        # whenever the user requests the command, it will call out to the callback.
+
+        # first, set up our callback, calling out to a method inside the app module contained
+        # in the python folder of the app
+        p = {"title": "New Perforce: Sync (multi)", "supports_multiple_selection": True}
+
+        # now register the command with the engine
+        self.engine.register_command("New Sync App (multi)...", self.open_sync_app, p)
+
+    def open_sync_app(self, entity_type=None, entity_ids=None):
+        self.app_payload = self.import_module("sync_app")
+        self.app_payload.dialog.open_sync_files_dialog(self, entity_type, entity_ids)
 
     def handle_connection_error(self, force_banner=None):
         """
-        Show banner notifying user of Perforce connection issue. 
+        Show banner notifying user of Perforce connection issue.
         :param: force_banner: Utilize this when the UI is already fully loaded
-            but you still need to trigger a banner update. 
+            but you still need to trigger a banner update.
         """
         # trigger a visible banner in SG Desktop
-        if self.engine.name in ['tk-desktop']:
-            
+        if self.engine.name in ["tk-desktop"]:
+
             log_location = sgtk.log.LogManager().log_folder.replace("\\", "/")
-            banner_message = "<br><center><font color='red'><b>Warning!</b></font> Could not connect to Perforce server."\
-                "<br>See <b>tk-desktop</b> <a href='file:///{}'>logs.</a> locating lines for [<i>{}</i>]<br>".format(log_location, self.name)
+            banner_message = (
+                "<br><center><font color='red'><b>Warning!</b></font> Could not connect to Perforce server."
+                "<br>See <b>tk-desktop</b> <a href='file:///{}'>logs.</a> locating lines for [<i>{}</i>]<br>".format(
+                    log_location, self.name
+                )
+            )
 
             if force_banner:
-                self.engine._project_comm.call_no_response("update_banners", banner_message)
+                self.engine._project_comm.call_no_response(
+                    "update_banners", banner_message
+                )
             else:
-                os.environ['SGTK_DESKTOP_PROJECT_BANNER_MESSAGE'] = banner_message
+                os.environ["SGTK_DESKTOP_PROJECT_BANNER_MESSAGE"] = banner_message
 
-        self.log_error("tk-multi-perforce is unable to load: {}".format(traceback.format_exc()))
+        self.log_error(
+            "tk-multi-perforce is unable to load: {}".format(traceback.format_exc())
+        )
 
     def destroy_app(self):
         """
@@ -123,7 +139,6 @@ class MultiPerforce(sgtk.platform.Application):
             tk_multi_perforce.open_sync_files_dialog(self, entity_type, entity_ids)
         except:
             self.handle_connection_error(force_banner=True)
-        
 
     def __connect_on_startup(self):
         """
@@ -136,4 +151,3 @@ class MultiPerforce(sgtk.platform.Application):
             tk_multi_perforce.connect(self)
         except:
             self.handle_connection_error()
-
