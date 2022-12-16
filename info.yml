@@ -56,3 +56,4 @@ supported_engines:
 frameworks:
     - {"name": "tk-framework-perforce", "version": "v0.x.x"}
     - {"name": "tk-framework-qtwidgets", "version": "v2.x.x"}
+    - {"name": "tk-framework-shotgunutils", "version": "v5.x.x"}

@@ -1,0 +1,57 @@
+[
+        {
+            "key": "item_found",
+            "title": "Name",
+            "default": "No name",
+            "delegate": None,
+            "transform": "sync_item",
+            "width": 300,
+        },
+        {
+            "key": "status",
+            "title": "Descr",
+            "default": "No Description",
+            "icon_finder": "sync_status",
+            "transform": "sync_status",
+            "width": 140,
+        },
+        {
+            "key": "ext",
+            "title": "Extension",
+            "default": "No Description",
+            "width": 50,
+            "filter": True
+        },
+        {
+            "key": "item_found",
+            "title": "Version",
+            "default": " ",
+            "transform": "revision",
+        },
+        {
+            "key": "item_found",
+            "title": "Size (MB)",
+            "default": " ",
+            "transform": "file_size",
+        },
+        {
+            "key": "item_found",
+            "title": "Destination",
+            "default": " ",
+            "transform": "destination_path",
+        },
+        {
+            "key": "type",
+            "title": "Type",
+            "default": "No Description",
+            "width": 100,
+            "filter": True
+        },
+        {
+            "key": "step",
+            "title": "Step",
+            "default": "No Description",
+            "width": 100,
+            "filter": True,
+        },
+    ]
