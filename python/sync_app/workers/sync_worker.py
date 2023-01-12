@@ -348,15 +348,16 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                                 self.entity = self.asset_map[i]["entity"]
                         
                         # step = None # grab step here
-                        step = published_file.get("task.Task.step.Step.code")
-                        if step:
-                            self.includes.emit(("step", step))
-                            
-                        file_type = published_file.get('published_file_type.PublishedFileType.code')
-                        if file_type:
-                            self.includes.emit(('type', file_type))
-                            
-                        ext = None
+                        if published_file:
+                            step = published_file.get("task.Task.step.Step.code")
+                            if step:
+                                self.includes.emit(("step", step))
+                                
+                            file_type = published_file.get('published_file_type.PublishedFileType.code')
+                            if file_type:
+                                self.includes.emit(('type', file_type))
+                                
+                            ext = None
                         
                         
                         

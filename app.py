@@ -51,17 +51,6 @@ class MultiPerforce(sgtk.platform.Application):
         # menu (but it depends on the engine). The engine will manage this command and
         # whenever the user requests the command, it will call out to the callback.
 
-        # first, set up our callback, calling out to a method inside the app module contained
-        # in the python folder of the app
-        p = {"title": "New Perforce: Sync (multi)", "supports_multiple_selection": True}
-
-        # now register the command with the engine
-        self.engine.register_command("New Sync App (multi)...", self.open_sync_app, p)
-
-    def open_sync_app(self, entity_type=None, entity_ids=None):
-        self.app_payload = self.import_module("sync_app")
-        self.app_payload.dialog.open_sync_files_dialog(self, entity_type, entity_ids)
-
     def handle_connection_error(self, force_banner=None):
         """
         Show banner notifying user of Perforce connection issue.
@@ -162,7 +151,10 @@ class MultiPerforce(sgtk.platform.Application):
         try:
             tk_multi_perforce = self.import_module("tk_multi_perforce")
             tk_multi_perforce.connect(self)
-            tk_multi_perforce.open_sync_files_dialog(self, entity_type, entity_ids)
+            # tk_multi_perforce.open_sync_files_dialog(self, entity_type, entity_ids)
+
+            app_payload = self.import_module("sync_app")
+            app_payload.dialog.open_sync_files_dialog(self, entity_type, entity_ids)
         except:
             self.handle_connection_error(force_banner=True)
 
