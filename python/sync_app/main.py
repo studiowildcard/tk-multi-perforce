@@ -54,12 +54,13 @@ class SyncApp:
         # file base for accessing Qt resources outside of resource scope
         self.basepath = os.path.dirname(os.path.abspath(__file__))
 
-        
-
         self.entities_to_sync = entities
         
         self.input_data = self.entities_to_sync
         #TODO why create another variable here rather than just using the one we have?
+
+        self.row_data = {}
+        self.row = 0
         
 
     @property
@@ -146,10 +147,23 @@ class SyncApp:
         Raises:
             sgtk.TankError: _description_
         """
-        
+        # log.info(">>>> report_worker_info item:{}".format(item))
         self.ui.model.add_row(item)
         self.ui.reload_view()
         self.ui.show_tree()
+
+        if "item_found" in item:
+            if "clientFile" in item["item_found"]:
+                client_file = item["item_found"]["clientFile"]
+                self.row_data[self.row] = client_file
+
+        self.ui.get_row_data(self.row_data)
+        self.row += 1
+
+
+    def report_sg_data(self, item):
+        #log.info(">>>> report_sg_data item:{}".format(item))
+        self.ui.get_sg_data(item)
         
 
     def item_completed(self, data):
@@ -203,6 +217,7 @@ class SyncApp:
 
             # as workers emit the item_found_to_sync, hit that method with the payload from it
             asset_info_gather_worker.item_found_to_sync.connect(self.report_worker_info)
+            asset_info_gather_worker.sg_data_found_to_sync.connect(self.report_sg_data)
             asset_info_gather_worker.info_gathered.connect(self.data_gathering_complete)
             asset_info_gather_worker.includes.connect(self.ui.update_available_filters)
             
@@ -211,6 +226,7 @@ class SyncApp:
 
             # this adds to the threadpool and runs the `run` method on the QRunner.
             self.threadpool.start(asset_info_gather_worker)
+
             
 
     def item_starting_sync(self, status_dict):

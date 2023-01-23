@@ -37,6 +37,7 @@ class AssetInfoGatherSignaller(QtCore.QObject):
     root_path_resolved = QtCore.Signal(str)
     info_gathered = QtCore.Signal(dict)
     item_found_to_sync = QtCore.Signal(dict)
+    sg_data_found_to_sync = QtCore.Signal(dict)
     status_update = QtCore.Signal(str)
     includes = QtCore.Signal(tuple)
     gathering_complete = QtCore.Signal(dict)
@@ -142,6 +143,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
         self.progress = self.signaller.progress
         self.root_path_resolved = self.signaller.root_path_resolved
         self.item_found_to_sync = self.signaller.item_found_to_sync
+        self.sg_data_found_to_sync = self.signaller.sg_data_found_to_sync
         self.status_update = self.signaller.status_update
         self.includes = self.signaller.includes
         self.total_items_found = self.signaller.total_items_found
@@ -152,6 +154,8 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
         self.publish_file = False
 
         self.spec_file = os.path.join(os.path.expanduser("~"), "p4spec.txt")
+
+        self.sg_data = {}
 
     def log_error(self, e):
         self.fw.log_error(str(e))
@@ -272,7 +276,8 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
             self._status = "Exact Path"
             self._detail = "Exact path specified: [{}]".format(self.root_path)
             self._icon = "load"
-            
+
+
 
     @QtCore.Slot()
     def run(self):
@@ -280,7 +285,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
         """
         Checks if there are errors in the item, signals that, or if not, gets info regarding what there is to sync.
         """
-        
+
 
         try:
 
@@ -290,7 +295,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
 
             self.asset_item = self.template_resolver.entity_info
             progress_status_string = ""
-            
+
             self.status_update.emit(
                 "Requesting sync information for {}".format(self.asset_name)
             )
@@ -298,7 +303,6 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
             self.fw.log_info(self.asset_item)
             self.collect_and_map_info()
 
-            
             if self.status == "Syncd":
                 progress_status_string = " (Nothing to sync. Skipping...)"
             self.log_error(str(self._items_to_sync))
@@ -312,7 +316,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                     # make lookup list for SG api call for published files to correlate.
                     depot_files = [i.get("depotFile") for i in self._items_to_sync]
                     find_fields = [
-                        "sg_p4_change_number","code",
+                        "sg_p4_change_number", "code",
                         "entity.Asset.code", "sg_p4_depo_path",
                         "task.Task.step.Step.code",
                         "published_file_type.PublishedFileType.code",
@@ -329,6 +333,36 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                     published_files = self.app.shotgun.find(
                         "PublishedFile", [sg_filter], find_fields
                     )
+
+                    for published_file in published_files:
+                        id = published_file.get('id')
+
+                        filters = [['id', 'is', id]
+                                   ]
+                        fields = ['code', 'created_at', 'created_by', 'created_by.HumanUser.image', 'description',
+                                  'entity', 'id', 'image', 'name', 'path', 'project', 'published_file_type',
+                                  'sg_status_list', 'task', 'task.Task.content', 'task.Task.due_date',
+                                  'task.Task.sg_status_list', 'task_uniqueness', 'type', 'version',
+                                  'version.Version.sg_status_list', 'version_number']
+
+                        order = [{'field_name': 'version_number', 'direction': 'desc'}]
+
+                        publish_dict = self.app.shotgun.find_one('PublishedFile', filters, fields, order)
+
+                        #for k, v in publish_dict.items():
+                        #    self.fw.log_info(k)
+                        #   self.fw.log_info(v)
+                        key = publish_dict.get('name')
+
+                        if key not in self.sg_data:
+                            self.sg_data[key] = publish_dict
+                        else:
+                            if 'version_number' in self.sg_data[key]:
+                                if publish_dict.get('version_number', 0) > self.sg_data[key]['version_number']:
+                                    self.sg_data[key] = publish_dict
+
+                    self.sg_data_found_to_sync.emit(self.sg_data)
+
                     # make dictionary of items callable by key: sg_p4_depot_path
                     published_file_by_depot_file = {
                         i.get("sg_p4_depo_path"): i for i in published_files
@@ -346,21 +380,23 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                             if i in item.get("clientFile"):
                                 self.asset_item = self.asset_map[i]["asset"]
                                 self.entity = self.asset_map[i]["entity"]
-                        
+
                         # step = None # grab step here
+                        step = None
+                        file_type = None
+                        ext = None
                         if published_file:
+
                             step = published_file.get("task.Task.step.Step.code")
                             if step:
                                 self.includes.emit(("step", step))
-                                
+
                             file_type = published_file.get('published_file_type.PublishedFileType.code')
                             if file_type:
                                 self.includes.emit(('type', file_type))
-                                
+
                             ext = None
-                        
-                        
-                        
+
                         if "." in item.get("clientFile"):
                             ext = os.path.basename(item.get("clientFile")).split(".")[
                                 -1
@@ -370,6 +406,21 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                         status = item.get("action")
                         if self.entity.get("type") in ["PublishedFile"]:
                             status = "Exact File"
+
+                        version_number = 0
+                        item_path = item.get('depotFile')
+                        # self.log('>>>>> item_path: {}'.format(item_path))
+                        try:
+                            key = os.path.basename(item_path)
+                        except:
+                            key = item_path.split("/")
+                            key = key[-1]
+                        #self.log('key: {}'.format(key))
+                        if key in self.sg_data:
+                            if 'version_number' in self.sg_data[key]:
+                                version_number = self.sg_data[key]['version_number']
+                        # self.log('version_number: {}'.format(version_number))
+
                         self.item_found_to_sync.emit(
                             {
                                 "worker_id": self.id,
@@ -379,6 +430,8 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                                 "type": file_type,
                                 "ext": ext.lower(),
                                 "status": status,
+                                "version": str(version_number),
+                                #"sg_data": self.sg_data
                             }
                         )
                 else:
@@ -400,3 +453,12 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
             self.log_error(traceback.format_exc())
 
         self.info_gathered.emit({"status": "gathered"})
+        return self.sg_data
+
+    def log(self, msg, error=0):
+        if logger:
+            if error:
+                logger.warn(msg)
+            else:
+                logger.info(msg)
+        print(msg)

@@ -32,6 +32,49 @@ configuration:
         default_value: "scene_operation_{engine_name}"
         description: All the application specific scene operations (open, save etc) that
                      the app needs to carry out are collected in this hook.
+    download_thumbnails:
+      type: bool
+      default_value: true
+      description: Controls whether thumbnails should be downloaded from ShotGrid or not. We
+        strongly recommend that thumbnails are downloaded since this greatly enhances
+        the user experience of the loader, however in some situations this may be
+        difficult due to bandwidth or infrastructural restrictions.
+
+    action_mappings:
+      type: dict
+      description: Associates published file types with actions. The actions are all defined
+        inside the actions hook.
+      default_value: { }
+      default_value_tk-3dsmax:
+        3dsmax Scene: [ import, reference ]
+      default_value_tk-3dsmaxplus:
+        3dsmax Scene: [ import, reference ]
+      default_value_tk-houdini:
+        Houdini Scene: [ merge ]
+      default_value_tk-nuke:
+        Rendered Image: [ read_node ]
+        Nuke Script: [ script_import ]
+      default_value_tk-maya:
+        Maya Scene: [ reference, import ]
+        Rendered Image: [ texture_node ]
+        Photoshop Image: [ texture_node ]
+        UDIM Image: [ udim_texture_node ]
+      default_value_tk-motionbuilder:
+        Motion Builder FBX: [ import ]
+      default_value_tk-photoshop:
+        Photoshop Image: [ add_as_a_layer, open_file ]
+        Rendered Image: [ add_as_a_layer, open_file ]
+      default_value_tk-mari:
+        Alembic Cache: [ geometry_import ]
+      default_value_tk-flame:
+        Flame Batch File: [ load_setup ]
+        Flame Quicktime: [ load_clip ]
+        Flame Render: [ load_clip ]
+        Photoshop Image: [ load_clip ]
+        Rendered Image: [ load_clip ]
+        Image: [ load_clip ]
+        Movie: [ load_clip ]
+        Texture: [ load_clip ]
 
 
 # the Shotgun fields that this app needs in order to operate correctly
@@ -56,4 +99,5 @@ supported_engines:
 frameworks:
     - {"name": "tk-framework-perforce", "version": "v0.x.x"}
     - {"name": "tk-framework-qtwidgets", "version": "v2.x.x"}
-    - {"name": "tk-framework-shotgunutils", "version": "v5.x.x"}
+    #- {"name": "tk-framework-shotgunutils", "version": "v5.x.x"}
+    - { "name": "tk-framework-shotgunutils", "version": "v5.x.x", "minimum_version": "v5.2.1" }
