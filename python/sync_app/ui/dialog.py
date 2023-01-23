@@ -2,6 +2,8 @@ import logging
 import os
 import sys
 import urllib
+import tempfile
+import shutil
 
 from functools import partial
 
@@ -583,10 +585,16 @@ class Ui_Dialog(Ui_Generic):
             if "image" in self._sg_data[key]:
                 # thumb_pixmap = self._sg_data[key]["image"]
                 # self.details_image.setPixmap(thumb_pixmap)
-                image_url = self._sg_data[key]["image"]
-                file_path = "C:/temp/tmp.png"
-                urllib.request.urlretrieve(image_url, file_path)
-                self.details_image.setPixmap(QtGui.QPixmap(file_path))
+                try:
+                    image_url = self._sg_data[key]["image"]
+                    dir_path = tempfile.mkdtemp()
+                    file_path = "{}/tmp.png".format(dir_path)
+                    urllib.request.urlretrieve(image_url, file_path)
+                    self.details_image.setPixmap(QtGui.QPixmap(file_path))
+                    # shutil.rmtree(dirpath)
+                except:
+                    logger.info("Unable to display thump pixmap")
+                    pass
 
             sg_data = self._sg_data[key]
 
@@ -760,10 +768,11 @@ class Ui_Dialog(Ui_Generic):
                     key = key.split("/")[-1]
                 except:
                     logger.info("Unable to get file path")
-                    pass
+                    return False
         #logger.info("on_item_clicked: base key: {}".format(key))
         self._key = key
         self._setup_details_panel(key)
+        return True
 
 
 

@@ -407,20 +407,6 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                         if self.entity.get("type") in ["PublishedFile"]:
                             status = "Exact File"
 
-                        version_number = 0
-                        item_path = item.get('depotFile')
-                        # self.log('>>>>> item_path: {}'.format(item_path))
-                        try:
-                            key = os.path.basename(item_path)
-                        except:
-                            key = item_path.split("/")
-                            key = key[-1]
-                        #self.log('key: {}'.format(key))
-                        if key in self.sg_data:
-                            if 'version_number' in self.sg_data[key]:
-                                version_number = self.sg_data[key]['version_number']
-                        # self.log('version_number: {}'.format(version_number))
-
                         self.item_found_to_sync.emit(
                             {
                                 "worker_id": self.id,
@@ -429,9 +415,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                                 "step": step,
                                 "type": file_type,
                                 "ext": ext.lower(),
-                                "status": status,
-                                "version": str(version_number),
-                                #"sg_data": self.sg_data
+                                "status": status
                             }
                         )
                 else:
