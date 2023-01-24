@@ -230,6 +230,8 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
         Get a response from perforce about our wish to sync a specific asset root path,
         Contextually use response to drive our status that we show the user.
         """
+        logger.debug('DRY RESPONSE RAN!')
+        
         if self.root_path and (self.entity.get("type") not in ["PublishedFile"]):
 
             self.p4 = self.fw.connection.connect()
@@ -239,8 +241,6 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                 arguments.append("-f")
             sync_response = self.p4.run("sync", *arguments, self.root_path + "#head")
             
-            
-            #TODO Do we need to ensure here that we are retreiving a dictionary??
             
             #Keys in dictionary is: depotFile,clientFile,rev,action,fileSize
             
@@ -348,7 +348,13 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                                 self.entity = self.asset_map[i]["entity"]
                         
                         # step = None # grab step here
+                        ext = None
+                        step = None
+                        file_type = None
+                        
                         if published_file:
+                            
+                            
                             step = published_file.get("task.Task.step.Step.code")
                             if step:
                                 self.includes.emit(("step", step))
