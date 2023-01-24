@@ -275,16 +275,20 @@ class SyncApp:
         for worker in workers:
             self.threadpool.start(worker)
 
-    def handle_raw_perforce_log(self, perforce_data: dict):
-        """
-        Description:
-            Method to extract information and add it to the log UI in the sync app
-        
-        perforce_data -> Dict:
-            raw data extracted from perforce
-        """
-        depotfile = perforce_data.get('depotFile')
-        change = perforce_data.get('change')
-        message = "depotfile: {}  |  Change: {}".format(depotfile, change)
-        self.ui.log_window.addItem(message)
+    def handle_raw_perforce_log(self, perforce_data):
+            """
+            Description:
+                Method to extract information and add it to the log UI in the sync app
+            
+            perforce_data -> Dict:
+                raw data extracted from perforce
+            """
+            if isinstance(perforce_data, dict):
+                depotfile = perforce_data.get('depotFile')
+                change = perforce_data.get('change')
+                message = "depotfile: {}  |  Change: {}".format(depotfile, change)
+                
+            elif isinstance(perforce_data, str):
+                message = perforce_data
+            self.ui.log_window.addItem(message)
         

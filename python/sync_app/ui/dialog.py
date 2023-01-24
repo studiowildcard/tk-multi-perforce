@@ -13,8 +13,9 @@ from ..models.multi_model import MultiModel
 from ..models.model_filter import SortFilterModel
 
 
-#logger = logging.getLogger(__name__)
+
 logger = sgtk.platform.get_logger(__name__)
+
 
 # @method_decorator(trace)
 class Ui_Dialog(Ui_Generic):
@@ -366,13 +367,18 @@ class Ui_Dialog(Ui_Generic):
           
             
     def setup_views(self):
+     
         if getattr(self.model.rootItem, "column_schema"):
             schema = self.model.rootItem.column_schema
+            
             for view in [self.tree_view]:
                 self.logger.info("setting up view: {}".format(schema))
+                
                 for c, col_def in enumerate(schema):
+                    
                     if col_def.get("width"):
                         view.setColumnWidth(c, col_def["width"])
+
 
     def reset_all_filters(self):
       
