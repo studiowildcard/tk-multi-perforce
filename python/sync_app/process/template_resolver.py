@@ -81,7 +81,7 @@ class TemplateResolver:
                 self.template_fields, sys.platform
             )
             return os.path.join(
-                "//{}/".format(self.p4.client) + templated_path[3:], "..."
+                "//{}/".format(self.p4.client) + templated_path[3:], "*"
             ).replace("\\", "/")
 
 
