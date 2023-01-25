@@ -91,7 +91,10 @@ class MultiModel(QtCore.QAbstractItemModel):
             return item.row()
 
         else:
-            return item.data(col)
+            if self.main_ui.should_i_update():
+                return item.data(col, cached=False)
+            else:
+                return item.data(col, cached=True)
 
     def flags(self, index):
         if not index.isValid():
@@ -175,7 +178,7 @@ class MultiModel(QtCore.QAbstractItemModel):
                     resolver=self.resolver,
                 )
 
-            self.refresh()
+            # self.refresh()
 
         # lines is our list
 
