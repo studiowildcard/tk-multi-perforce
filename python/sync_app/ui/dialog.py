@@ -88,34 +88,15 @@ class Ui_Dialog(Ui_Generic):
             )
         )
 
-    def should_i_update(self):
-        i_should_update = False
-        self._current_time = datetime.now()
-
-        delta = self._current_time - self._last_time_updated
-        logger.debug(f"DELTA is currently: {delta}")
-
-        if delta.seconds > 2:  # modify this to change intervals
-            i_should_update = True
-
-        return i_should_update
-
     def reload_view(self):
-        # decide IF we should be reloading.
-        if not self.interactive:
-            if self.should_i_update():
-                # self.model.
-                self.model.refresh()
-                self.tree_view.update()
-                self.tree_view.expandAll()
-                # self.tree_view.setAnimated(True)
-                # record time of update into self.last_updated
-                self._last_time_updated = datetime.now()
 
-            else:
-                # handle case of what interval you wish to update by
-                # self.last_updated_timestamp = "%H%M%S"
-                pass
+        self.model.i_should_update = True
+        self.model.refresh()
+        self.tree_view.update()
+        self.tree_view.expandAll()
+        self.tree_view.setAnimated(True)
+        self.show_tree()
+        # record time of update into self.last_updated
 
     def setup_style(self):
         self.setStyleSheet(
@@ -491,7 +472,7 @@ class Ui_Dialog(Ui_Generic):
             This method runs when the any of the filters is changed, and ensures that the ui is updated accordingly.
         """
         logging.debug("Refreshing UI based on changes")
-        self.model.refresh()
+        self.reload_view()
 
     def show_tree(self):
         self.view_stack.setCurrentWidget(self.tree_view)
