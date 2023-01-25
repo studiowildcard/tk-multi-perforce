@@ -83,14 +83,13 @@ class Row:
         return True
 
     def data(self, column, cached=False):
+
         try:
-            # if cached:
-            #     return self._cached_data
-            # else:
-            #     data = self.rowData[column]
-            #     self._cached_data = data
-            #     return data
-            return self.rowData[column]
+            if cached and self._cached_data:
+                return self._cached_data[column]
+            else:
+                self._cached_data = self.rowData
+                return self._cached_data[column]
         except IndexError:
             return None
 
