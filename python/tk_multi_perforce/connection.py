@@ -14,6 +14,7 @@ menu
 """
 
 import sgtk
+from sgtk import TankError
 
 def connect(app):
     """
@@ -23,9 +24,10 @@ def connect(app):
     try:
         p4_fw = sgtk.platform.get_framework("tk-framework-perforce")
         p4_fw.connection.connect()
-    except:
+    except TankError as e:
         app.log_exception("Failed to connect!")
-        return
+        raise 
+
 
 def open_connection(app):
     """
@@ -36,7 +38,7 @@ def open_connection(app):
         p4_fw.connection.connect_with_dialog()
     except:
         app.log_exception("Failed to Open Connection dialog!")
-        return
+        raise Exception("Failed to Open Connection dialog!")
     
 
       

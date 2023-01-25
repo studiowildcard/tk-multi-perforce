@@ -1,0 +1,52 @@
+[
+        {
+            "key": "asset_name",
+            "title": "Name",
+            "transform": "asset_name",
+            "default": "No name",
+            "icon": "Asset",
+            
+        },
+        {
+            "key": "status",
+            "title": "Descr",
+            "default": "No Description",
+            "transform": "total_to_sync",
+            "icon_finder": "asset_status",
+        },
+        {
+            "key": "_", 
+            "title": "Extension",
+            "default": None
+        },
+        {
+            "key": "_",
+            "title": "Revision",
+            "default": None,
+        },
+        {
+            "key": "_",
+            "title": "Size (MB)",
+            "default": None,
+        },
+        {
+            "key": "_",
+            "title": "Destination Path",
+            "default": None,
+        },
+        {
+            "key": "_",
+            "title": "Type",
+            "default": "No Description",
+            "width": 100,
+            
+            
+        },
+        {
+            "key": "_",
+            "title": "Step",
+            "default": "No Description",
+            "width": 100,
+            
+        },
+    ]
