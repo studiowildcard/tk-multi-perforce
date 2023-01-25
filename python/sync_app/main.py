@@ -17,7 +17,7 @@ from .utils import PrefFile, open_browser
 from .utils.inspection import partialclass, trace, method_decorator
 from .ui.dialog import Ui_Dialog
 from .utils.progress import ProgressHandler
-from .workers.sync_worker import SyncWorker, AssetInfoGatherWorker
+from .workers.sync_worker import SyncWorker, AssetInfoGatherWorker, TimeLord
 
 log = sgtk.platform.get_logger(__name__)
 
@@ -152,14 +152,17 @@ class SyncApp:
         """
 
         self.ui.model.add_row(item)
-        self.ui.reload_view()
-        self.ui.show_tree()
 
     def item_completed(self, data):
 
         self.logger.debug("")
         self.ui.model.add_row(data)
-        self.ui.reload_view()
+        # self.ui.reload_view()
+
+    def timed_event_handler(self, key):
+        if key == "model_view_update":
+            if not self.ui.interactive:
+                self.ui.reload_view()
 
     def data_gathering_complete(self, completion_dict: dict) -> None:
         """
@@ -174,7 +177,10 @@ class SyncApp:
         self.progress_handler.iterate("assets_info")
         self.ui.update_progress()
         self.logger.info("Finished gathering data from perforce.")
-        self.ui.interactive = True
+
+        if self._cur_progress == self._total:
+            self.ui.reload_view()
+            self.ui.interactive = True
 
     def initialize_data(self):
         """
@@ -182,6 +188,11 @@ class SyncApp:
         Utilize a global threadpool to process workers to ask P4 server for what
         there is to sync for these.
         """
+
+        timer_worker = TimeLord()
+        timer_worker.update_ui.connect(self.timed_event_handler)
+        self.threadpool.start(timer_worker)
+
         self._total = len(self.entities_to_sync)
         self._cur_progress = 0
 
@@ -219,7 +230,6 @@ class SyncApp:
         # make sure that the item knows its syncing,
         item = self.item_map.get(status_dict.get("model_item"))
         item.syncing = True
-        self.ui.reload_view()
 
     def item_completed_sync(self, status_dict):
         item = self.item_map.get(status_dict.get("model_item"))
@@ -235,7 +245,6 @@ class SyncApp:
             item.error = status_dict["error"]
         else:
             item.syncd = True
-        self.ui.reload_view()
 
     def start_sync(self):
         """
