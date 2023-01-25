@@ -82,8 +82,14 @@ class Row:
     def isValid(self):
         return True
 
-    def data(self, column):
+    def data(self, column, cached=False):
         try:
+            # if cached:
+            #     return self._cached_data
+            # else:
+            #     data = self.rowData[column]
+            #     self._cached_data = data
+            #     return data
             return self.rowData[column]
         except IndexError:
             return None
