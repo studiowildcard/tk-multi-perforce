@@ -18,6 +18,7 @@ from .utils.inspection import partialclass, trace, method_decorator
 from .ui.dialog import Ui_Dialog
 from .utils.progress import ProgressHandler
 from .workers.sync_worker import SyncWorker, AssetInfoGatherWorker
+from .workers.timed_events import TimeLord
 
 log = sgtk.platform.get_logger(__name__)
 
@@ -30,8 +31,14 @@ class SyncApp:
 
     progress = 0
 
-    def __init__(self, parent_sgtk_app, entities=None, specific_files=None,
-        parent=None, data=None):
+    def __init__(
+        self,
+        parent_sgtk_app,
+        entities=None,
+        specific_files=None,
+        parent=None,
+        data=None,
+    ):
 
         """
         Construction of sync app
@@ -43,28 +50,27 @@ class SyncApp:
         self.progress_handler = ProgressHandler()
 
         self.workers = {"asset_info": AssetInfoGatherWorker, "sync": SyncWorker}
-        self.shotgun_globals = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_globals")
+        self.shotgun_globals = sgtk.platform.import_framework(
+            "tk-framework-shotgunutils", "shotgun_globals"
+        )
 
         # the threadpool we send thread workers to.
         self.threadpool = QtCore.QThreadPool.globalInstance()
-        
-        #TODO self.threadpool.setMaxThreadCount(self.threadpool.maxThreadCount(10))
+
+        # TODO self.threadpool.setMaxThreadCount(self.threadpool.maxThreadCount(10))
         self.threadpool.setMaxThreadCount(min(23, self.threadpool.maxThreadCount()))
 
         # file base for accessing Qt resources outside of resource scope
         self.basepath = os.path.dirname(os.path.abspath(__file__))
 
-        
-
         self.entities_to_sync = entities
-        
+
         self.input_data = self.entities_to_sync
-        #TODO why create another variable here rather than just using the one we have?
-        
+        # TODO why create another variable here rather than just using the one we have?
 
     @property
     def logger(self):
-        #TODO ensure that the logger actually logs with proper naming
+        # TODO ensure that the logger actually logs with proper naming
         logger = sgtk.platform.get_logger(__name__)
         return logger
 
@@ -84,7 +90,7 @@ class SyncApp:
             "class": Ui_Dialog,
             "args": [self.parent, self],
             "kwargs": {"logger": self.parent_sgtk_app.logger},
-        } 
+        }
 
     def run(self):
         """
@@ -105,7 +111,6 @@ class SyncApp:
         if not self._p4:
             self._p4 = self.fw.connection.connect()
         return self._p4
-    
 
     @property
     def fw(self):
@@ -130,8 +135,6 @@ class SyncApp:
 
         self.logger.info("App build completed with workers")
 
-
-
     def report_worker_info(self, item):
         """
         Method to process incoming dictionaries regarding items found
@@ -146,18 +149,19 @@ class SyncApp:
         Raises:
             sgtk.TankError: _description_
         """
-        
+
         self.ui.model.add_row(item)
-        self.ui.reload_view()
-        self.ui.show_tree()
-        
 
     def item_completed(self, data):
 
         self.logger.debug("")
         self.ui.model.add_row(data)
-        self.ui.reload_view()
-        
+        # self.ui.reload_view()
+
+    def timed_event_handler(self, key):
+        if key == "model_view_update":
+            if not self.ui.interactive:
+                self.ui.reload_view()
 
     def data_gathering_complete(self, completion_dict: dict) -> None:
         """
@@ -172,8 +176,10 @@ class SyncApp:
         self.progress_handler.iterate("assets_info")
         self.ui.update_progress()
         self.logger.info("Finished gathering data from perforce.")
-        self.ui.interactive = True
-        
+
+        if self._cur_progress == self._total:
+            self.ui.reload_view()
+            self.ui.interactive = True
 
     def initialize_data(self):
         """
@@ -181,6 +187,11 @@ class SyncApp:
         Utilize a global threadpool to process workers to ask P4 server for what
         there is to sync for these.
         """
+
+        timer_worker = TimeLord()
+        timer_worker.update_ui.connect(self.timed_event_handler)
+        self.threadpool.start(timer_worker)
+
         self._total = len(self.entities_to_sync)
         self._cur_progress = 0
 
@@ -191,13 +202,11 @@ class SyncApp:
             **{"items": len(self.entities_to_sync), "id": "assets_info"}
         )
 
-
-
         for i in self.entities_to_sync:
             asset_info_gather_worker = AssetInfoGatherWorker(
                 app=self.parent_sgtk_app, entity=i, framework=self.fw
             )
-            
+
             asset_info_gather_worker.force = self.ui._force_sync.isChecked()
             asset_info_gather_worker.p4 = self.p4
 
@@ -205,19 +214,19 @@ class SyncApp:
             asset_info_gather_worker.item_found_to_sync.connect(self.report_worker_info)
             asset_info_gather_worker.info_gathered.connect(self.data_gathering_complete)
             asset_info_gather_worker.includes.connect(self.ui.update_available_filters)
-            
-            #TODO signal for the raw perforce log. for debugging
-            asset_info_gather_worker.p4_log_received.connect(self.handle_raw_perforce_log)
+
+            # TODO signal for the raw perforce log. for debugging
+            asset_info_gather_worker.p4_log_received.connect(
+                self.handle_raw_perforce_log
+            )
 
             # this adds to the threadpool and runs the `run` method on the QRunner.
             self.threadpool.start(asset_info_gather_worker)
-            
 
     def item_starting_sync(self, status_dict):
         # make sure that the item knows its syncing,
         item = self.item_map.get(status_dict.get("model_item"))
         item.syncing = True
-        self.ui.reload_view()
 
     def item_completed_sync(self, status_dict):
         item = self.item_map.get(status_dict.get("model_item"))
@@ -233,7 +242,6 @@ class SyncApp:
             item.error = status_dict["error"]
         else:
             item.syncd = True
-        self.ui.reload_view()
 
     def start_sync(self):
         """
@@ -249,9 +257,9 @@ class SyncApp:
         workers = []
         for asset in self.ui.model.rootItem.childItems:
             for sync_item in asset.childItems:
-                
+
                 if sync_item.should_be_visible:
-                    #log.debug("THIS IS SYNC_ITEM: {}".format(sync_item.data_in))
+                    # log.debug("THIS IS SYNC_ITEM: {}".format(sync_item.data_in))
                     sync_worker = SyncWorker()
 
                     self.item_map[sync_item.id] = sync_item
@@ -276,19 +284,18 @@ class SyncApp:
             self.threadpool.start(worker)
 
     def handle_raw_perforce_log(self, perforce_data):
-            """
-            Description:
-                Method to extract information and add it to the log UI in the sync app
-            
-            perforce_data -> Dict:
-                raw data extracted from perforce
-            """
-            if isinstance(perforce_data, dict):
-                depotfile = perforce_data.get('depotFile')
-                change = perforce_data.get('change')
-                message = "depotfile: {}  |  Change: {}".format(depotfile, change)
-                
-            elif isinstance(perforce_data, str):
-                message = perforce_data
-            self.ui.log_window.addItem(message)
-        
+        """
+        Description:
+            Method to extract information and add it to the log UI in the sync app
+
+        perforce_data -> Dict:
+            raw data extracted from perforce
+        """
+        if isinstance(perforce_data, dict):
+            depotfile = perforce_data.get("depotFile")
+            change = perforce_data.get("change")
+            message = "depotfile: {}  |  Change: {}".format(depotfile, change)
+
+        elif isinstance(perforce_data, str):
+            message = perforce_data
+        self.ui.log_window.addItem(message)
