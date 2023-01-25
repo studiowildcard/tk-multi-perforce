@@ -17,7 +17,8 @@ from .utils import PrefFile, open_browser
 from .utils.inspection import partialclass, trace, method_decorator
 from .ui.dialog import Ui_Dialog
 from .utils.progress import ProgressHandler
-from .workers.sync_worker import SyncWorker, AssetInfoGatherWorker, TimeLord
+from .workers.sync_worker import SyncWorker, AssetInfoGatherWorker
+from .workers.timed_events import TimeLord
 
 log = sgtk.platform.get_logger(__name__)
 
