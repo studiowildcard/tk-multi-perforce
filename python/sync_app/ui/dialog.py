@@ -190,6 +190,7 @@ class Ui_Dialog(Ui_Generic):
 
         self.model = MultiModel(parent=self)
         self.proxy_model.setSourceModel(self.model)
+        self.log_window.clear()
         self.model.refresh()
         self.app.initialize_data()
 
