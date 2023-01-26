@@ -58,7 +58,11 @@ class SyncApp:
         self.threadpool = QtCore.QThreadPool.globalInstance()
 
         # TODO self.threadpool.setMaxThreadCount(self.threadpool.maxThreadCount(10))
+        self.timer_worker = TimeLord()
+        self.timer_worker.update_ui.connect(self.timed_event_handler)
+        self.threadpool.start(self.timer_worker)
         self.threadpool.setMaxThreadCount(min(23, self.threadpool.maxThreadCount()))
+        self.model_view_updating = False
 
         # file base for accessing Qt resources outside of resource scope
         self.basepath = os.path.dirname(os.path.abspath(__file__))
@@ -156,12 +160,17 @@ class SyncApp:
 
         self.logger.debug("")
         self.ui.model.add_row(data)
+        # self.ui.model.refresh()
         # self.ui.reload_view()
 
     def timed_event_handler(self, key):
+
         if key == "model_view_update":
             if not self.ui.interactive:
-                self.ui.reload_view()
+                if self.model_view_updating != True:
+                    self.model_view_updating = True
+                    self.ui.model.refresh()
+                self.model_view_updating = False
 
     def data_gathering_complete(self, completion_dict: dict) -> None:
         """
@@ -171,6 +180,7 @@ class SyncApp:
         Args:
             completion_dict (dict)
         """
+        self.ui.show_tree()
         self._cur_progress += 1
         self.logger.info("Progress: {}/{}".format(self._cur_progress, self._total))
         self.progress_handler.iterate("assets_info")
@@ -178,7 +188,7 @@ class SyncApp:
         self.logger.info("Finished gathering data from perforce.")
 
         if self._cur_progress == self._total:
-            self.ui.reload_view()
+            self.ui.model.refresh()
             self.ui.interactive = True
 
     def initialize_data(self):
@@ -187,10 +197,7 @@ class SyncApp:
         Utilize a global threadpool to process workers to ask P4 server for what
         there is to sync for these.
         """
-
-        timer_worker = TimeLord()
-        timer_worker.update_ui.connect(self.timed_event_handler)
-        self.threadpool.start(timer_worker)
+        self.ui.interactive = False
 
         self._total = len(self.entities_to_sync)
         self._cur_progress = 0
@@ -227,6 +234,7 @@ class SyncApp:
         # make sure that the item knows its syncing,
         item = self.item_map.get(status_dict.get("model_item"))
         item.syncing = True
+        # self.ui.model.refresh()
 
     def item_completed_sync(self, status_dict):
         item = self.item_map.get(status_dict.get("model_item"))
@@ -242,6 +250,8 @@ class SyncApp:
             item.error = status_dict["error"]
         else:
             item.syncd = True
+
+        # self.ui.model.refresh()
 
     def start_sync(self):
         """

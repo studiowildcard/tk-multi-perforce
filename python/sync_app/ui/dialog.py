@@ -470,7 +470,8 @@ class Ui_Dialog(Ui_Generic):
             This method runs when the any of the filters is changed, and ensures that the ui is updated accordingly.
         """
         logging.debug("Refreshing UI based on changes")
-        self.reload_view()
+        # if self.interactive:
+        self.model.refresh()
 
     def show_tree(self):
         self.view_stack.setCurrentWidget(self.tree_view)
