@@ -4,19 +4,6 @@ import sgtk
 import traceback
 from ..utils.inspection import method_decorator, trace
 
-name_mapping = {
-    "Animation": "CustomEntity05",
-    "Env Asset": "CustomEntity01",
-}
-
-root_template_mapping = {
-    "Asset": "asset_root",
-    "Animation": "anim_asset_root",
-    "Env Asset": "env_asset_root",
-    "Sequence": "sequence_root",
-    "Shot": "shot_root",
-}
-
 
 # @method_decorator(trace)
 class TemplateResolver:
@@ -96,16 +83,6 @@ class TemplateResolver:
             return os.path.join(
                 "//{}/".format(self.p4.client) + templated_path[3:], "..."
             ).replace("\\", "/")
-
-    @property
-    def root_path(self):
-        if self._incoming_entity.get("type") in ["PublishedFile"]:
-            return self._incoming_entity.get("path_cache")
-        else:
-            templated_path = self.root_template.apply_fields(
-                self.template_fields, platform=sys.platform
-            )
-            return os.path.join(templated_path, "...")
 
     @property
     def entity_info(self):

@@ -17,6 +17,7 @@ from ..utils.inspection import method_decorator, trace
 
 logger = sgtk.platform.get_logger(__name__)
 
+
 class SyncSignaller(QtCore.QObject):
     """
     Create signaller class for Sync Worker, required for using signals due to QObject inheritance
@@ -25,7 +26,6 @@ class SyncSignaller(QtCore.QObject):
     started = QtCore.Signal(dict)
     finished = QtCore.Signal()
     completed = QtCore.Signal(dict)  # (path to sync, p4 sync response)
-    
 
 
 class AssetInfoGatherSignaller(QtCore.QObject):
@@ -42,11 +42,10 @@ class AssetInfoGatherSignaller(QtCore.QObject):
     includes = QtCore.Signal(tuple)
     gathering_complete = QtCore.Signal(dict)
     total_items_found = QtCore.Signal(dict)
-    p4_log_received = QtCore.Signal(dict) # this is for p4 raw data log
+    p4_log_received = QtCore.Signal(dict)  # this is for p4 raw data log
 
 
-
-#@method_decorator(trace)
+# @method_decorator(trace)
 class SyncWorker(QtCore.QRunnable):
 
     # structurally anticipate basic p4 calls, which will route to the main form.
@@ -82,21 +81,20 @@ class SyncWorker(QtCore.QRunnable):
         try:
 
             self.started.emit({"model_item": self.id})
-            
+
             self.p4 = self.fw.connection.connect()
             logger.debug("P4 CONNECTION ESTABLISHED: {}".format(self.p4))
-            
+
             # # run the syncs
             logger.debug("THIS IS PATH_TO_SYNC: {}".format(self.path_to_sync))
-            
-  
+
             p4_response = self.p4.run("sync", "-f", "{}#head".format(self.path_to_sync))
-            #logger.debug("THIS IS P4_RESPONSE: {}".format(p4_response))
+            # logger.debug("THIS IS P4_RESPONSE: {}".format(p4_response))
 
             # emit item key and p4 response to main thread
 
             self.completed.emit({"model_item": self.id, "path": self.path_to_sync})
-            
+
         except Exception as e:
             import traceback
 
@@ -109,7 +107,7 @@ class SyncWorker(QtCore.QRunnable):
             )
 
 
-#@method_decorator(trace)
+# @method_decorator(trace)
 class AssetInfoGatherWorker(QtCore.QRunnable):
     def __init__(self, app=None, entity=None, framework=None):
         """
@@ -132,7 +130,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
         self._detail = None
 
         self.fw = framework
-        self.asset_item = None  #this is expected to be a dictionary
+        self.asset_item = None  # this is expected to be a dictionary
 
         self.progress_batch_size = 0
         self.progress_batch_completion = 0
@@ -148,8 +146,8 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
         self.includes = self.signaller.includes
         self.total_items_found = self.signaller.total_items_found
         self.gathering_complete = self.signaller.gathering_complete
-    
-        self.p4_log_received = self.signaller.p4_log_received # raw p4 log
+
+        self.p4_log_received = self.signaller.p4_log_received  # raw p4 log
 
         self.publish_file = False
 
@@ -220,10 +218,8 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
             "asset_item": self.asset_item,
             "items_to_sync": self._items_to_sync,
         }
-        
-        
-        logger.debug("These are items to sync: {}".format(self._items_to_sync))
 
+        logger.debug("These are items to sync: {}".format(self._items_to_sync))
 
     def write_spec_file(self, contents):
         with open(self.spec_file, "w") as spec_file:
@@ -234,25 +230,23 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
         Get a response from perforce about our wish to sync a specific asset root path,
         Contextually use response to drive our status that we show the user.
         """
+        logger.debug("DRY RESPONSE RAN!")
+
         if self.root_path and (self.entity.get("type") not in ["PublishedFile"]):
 
             self.p4 = self.fw.connection.connect()
-            
+
             arguments = ["-n"]
             if self.force:
                 arguments.append("-f")
             sync_response = self.p4.run("sync", *arguments, self.root_path + "#head")
-            
-            
-            #TODO Do we need to ensure here that we are retreiving a dictionary??
-            
-            #Keys in dictionary is: depotFile,clientFile,rev,action,fileSize
-            
+
+            # Keys in dictionary is: depotFile,clientFile,rev,action,fileSize
+
             if isinstance(sync_response, list):
                 for x in sync_response:
                     self.p4_log_received.emit(x)
-                    
-                    
+
             if not sync_response:
                 self._status = "Not In Depot"
                 self._icon = "error"
@@ -268,7 +262,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                 self._status = "{} items to Sync".format(len(self._items_to_sync))
                 self._icon = "load"
                 self._detail = self.root_path
-                
+
         if self.entity.get("type") in ["PublishedFile"]:
             self._items_to_sync = [
                 {"clientFile": "B:/" + self.entity.get("path_cache")}
@@ -277,15 +271,12 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
             self._detail = "Exact path specified: [{}]".format(self.root_path)
             self._icon = "load"
 
-
-
     @QtCore.Slot()
     def run(self):
 
         """
         Checks if there are errors in the item, signals that, or if not, gets info regarding what there is to sync.
         """
-
 
         try:
 
@@ -316,8 +307,10 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                     # make lookup list for SG api call for published files to correlate.
                     depot_files = [i.get("depotFile") for i in self._items_to_sync]
                     find_fields = [
-                        "sg_p4_change_number", "code",
-                        "entity.Asset.code", "sg_p4_depo_path",
+                        "sg_p4_change_number",
+                        "code",
+                        "entity.Asset.code",
+                        "sg_p4_depo_path",
                         "task.Task.step.Step.code",
                         "published_file_type.PublishedFileType.code",
                     ]
@@ -382,18 +375,21 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                                 self.entity = self.asset_map[i]["entity"]
 
                         # step = None # grab step here
+                        ext = None
                         step = None
                         file_type = None
-                        ext = None
+
                         if published_file:
 
                             step = published_file.get("task.Task.step.Step.code")
                             if step:
                                 self.includes.emit(("step", step))
 
-                            file_type = published_file.get('published_file_type.PublishedFileType.code')
+                            file_type = published_file.get(
+                                "published_file_type.PublishedFileType.code"
+                            )
                             if file_type:
-                                self.includes.emit(('type', file_type))
+                                self.includes.emit(("type", file_type))
 
                             ext = None
 
@@ -406,7 +402,6 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                         status = item.get("action")
                         if self.entity.get("type") in ["PublishedFile"]:
                             status = "Exact File"
-
                         self.item_found_to_sync.emit(
                             {
                                 "worker_id": self.id,
