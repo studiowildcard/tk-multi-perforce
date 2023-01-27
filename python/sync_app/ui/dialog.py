@@ -90,10 +90,21 @@ class Ui_Dialog(Ui_Generic):
         self.init_details_panel()
 
     def get_row_data(self, row_data):
-        self._row_data = row_data
+        """
+            Merge row_data into self._row_data
+        """
+        for key in row_data.keys():
+            if key not in self._row_data.keys():
+                self._row_data[key] = row_data[key]
 
     def get_sg_data(self, dict_data):
-        self._sg_data = dict_data
+        """
+        Merge dict_data into self._sg_data
+        """
+        for key in dict_data.keys():
+            if key not in self._sg_data.keys():
+                self._sg_data[key] = dict_data[key]
+
 
     def make_components(self):
 
