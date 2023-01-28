@@ -253,6 +253,9 @@ class SyncApp:
 
         # self.ui.model.refresh()
 
+    def handle(self, info):
+        self.logger.info(str(info))
+
     def start_sync(self):
         """
         Iterate through assets and their sync items to start workers for all paths that require syncs.
@@ -264,34 +267,54 @@ class SyncApp:
         # hold a map to our items while they process
         self.item_map = {}
 
+        p4 = self.fw.connection.connect(progress=True)
+        sync_worker = SyncWorker(p4)
+        paths_to_sync = []
         workers = []
         for asset in self.ui.model.rootItem.childItems:
             for sync_item in asset.childItems:
 
                 if sync_item.should_be_visible:
                     # log.debug("THIS IS SYNC_ITEM: {}".format(sync_item.data_in))
-                    sync_worker = SyncWorker()
 
-                    self.item_map[sync_item.id] = sync_item
-                    sync_worker.id = sync_item.id
+                    # self.item_map[sync_item.id] = sync_item
+                    # sync_worker.id = sync_item.id
 
-                    sync_worker.path_to_sync = sync_item.data(5)
-                    sync_worker.asset_name = sync_item.parent().data(1).split(" ")[0]
+                    paths_to_sync.append(sync_item.data(5))
+                    # sync_worker.asset_name = sync_item.parent().data(1).split(" ")[0]
 
-                    sync_worker.fw = self.fw
+                    # sync_worker.p4.progress.percent_done.connect(
+                    #     self.update_percent_complete
+                    # )
+                    # sync_worker.p4.progress.time_remaining.connect(
+                    #     self.update_progress_eta
+                    # )
+                    # sync_worker.p4.progress.transfer_rate.connect(
+                    #     self.update_transfer_rate
+                    # )
+                    # sync_worker.p4.progress.total_size.connect(self.update_total_size)
 
-                    sync_worker.started.connect(self.item_starting_sync)
-                    sync_worker.completed.connect(self.item_completed_sync)
+                    # # connect worker-specific signal
+                    # sync_worker.submission_response.connect(
+                    #     self.update_submission_response
+                    # )
+                    # sync_worker.submission_error.connect(self.handle_error_response)
+        sync_worker.fw = self.fw
+        sync_worker.paths_to_sync = paths_to_sync
 
-                    workers.append(sync_worker)
+        sync_worker.started.connect(self.item_starting_sync)
+        sync_worker.completed.connect(self.item_completed_sync)
 
-        queue_length = len(workers)
+        # connect progress-specific signals
+        sync_worker.p4.progress.description.connect(self.handle)
+
+        queue_length = len(paths_to_sync)
         self.progress_handler.queue = {}
         self.progress_handler.track_progress(
             **{"items": queue_length, "id": "sync_workers"}
         )
-        for worker in workers:
-            self.threadpool.start(worker)
+        # ±for worker in workers:
+        self.threadpool.start(sync_worker)
 
     def handle_raw_perforce_log(self, perforce_data):
         """
