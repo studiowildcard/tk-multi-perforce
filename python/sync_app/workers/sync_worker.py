@@ -54,13 +54,13 @@ class SyncWorker(QtCore.QRunnable):
     asset_name = None
     item = None
 
-    def __init__(self):
+    def __init__(self, p4):
         """
         Handles syncing specific file from perforce depot to local workspace on disk
         """
         super(SyncWorker, self).__init__()
         self.signaller = SyncSignaller()
-
+        self.p4 = p4
         # use signals from Signaller, since we cant in a non-QObject derrived
         # object like this QRunner.
         self.started = self.signaller.started
@@ -79,31 +79,33 @@ class SyncWorker(QtCore.QRunnable):
         """
         try:
 
-            self.started.emit({"model_item": self.id})
+            # self.started.emit({"model_item": self.id})
 
-            self.p4 = self.fw.connection.connect()
             logger.debug("P4 CONNECTION ESTABLISHED: {}".format(self.p4))
 
             # # run the syncs
-            logger.debug("THIS IS PATH_TO_SYNC: {}".format(self.path_to_sync))
+            logger.debug("THIS IS PATH_TO_SYNC: {}".format(self.paths_to_sync))
 
-            p4_response = self.p4.run("sync", "-f", "{}#head".format(self.path_to_sync))
+            p4_response = self.p4.run(
+                "sync", "-f", [f"{i}" for i in self.paths_to_sync[0:2]]
+            )
+
             # logger.debug("THIS IS P4_RESPONSE: {}".format(p4_response))
 
             # emit item key and p4 response to main thread
 
-            self.completed.emit({"model_item": self.id, "path": self.path_to_sync})
+            # self.completed.emit({"model_item": self.id, "path": self.path_to_sync})
 
         except Exception as e:
             import traceback
 
-            self.completed.emit(
-                {
-                    "model_item": self.id,
-                    "path": self.path_to_sync,
-                    "error": traceback.format_exc(),
-                }
-            )
+            # self.completed.emit(
+            #     {
+            #         "model_item": self.id,
+            #         "path": self.path_to_sync,
+            #         "error": traceback.format_exc(),
+            #     }
+            # )
 
 
 # @method_decorator(trace)
