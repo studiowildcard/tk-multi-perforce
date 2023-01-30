@@ -61,6 +61,14 @@ class MultiPerforce(sgtk.platform.Application):
         if self.engine.name in ["tk-desktop"]:
 
             log_location = sgtk.log.LogManager().log_folder.replace("\\", "/")
+            self.banner_error_message = "<br><center><font color='red'><b>Warning!</b></font> Could not connect to Perforce server."\
+                "<br>See <b>tk-desktop</b> <a href='file:///{}'>logs.</a> locating lines for [<i>{}</i>]<br>".format(log_location, self.name)
+            force_banner = False
+            if force_banner:
+                self.engine._project_comm.call_no_response("update_banners", self.banner_error_message)
+            else:
+                os.environ['SGTK_DESKTOP_PROJECT_BANNER_MESSAGE'] = self.banner_error_message
+
             banner_message = (
                 "<br><center><font color='red'><b>Warning!</b></font> Could not connect to Perforce server."
                 "<br>See <b>tk-desktop</b> <a href='file:///{}'>logs.</a> locating lines for [<i>{}</i>]<br>".format(
@@ -79,6 +87,20 @@ class MultiPerforce(sgtk.platform.Application):
             "tk-multi-perforce is unable to load: {}".format(traceback.format_exc())
         )
 
+    def handle_connection_success(self, force_banner=None):
+        # trigger a visible banner in SG Desktop
+        if self.engine.name in ['tk-desktop']:
+
+            log_location = sgtk.log.LogManager().log_folder.replace("\\", "/")
+            self.banner_success_message = "<br><center><font color='blue'><b>Success!</b></font> Connection to Perforce server is successful." \
+                             "<br>See <b>tk-desktop</b> <a href='file:///{}'>logs.</a> locating lines for [<i>{}</i>]<br>".format(
+                log_location, self.name)
+
+            if force_banner:
+                self.engine._project_comm.call_no_response("update_banners", self.banner_success_message)
+            else:
+                os.environ['SGTK_DESKTOP_PROJECT_BANNER_MESSAGE'] = self.banner_success_message
+
     def destroy_app(self):
         """
         Called when the app is being cleaned up
@@ -93,7 +115,11 @@ class MultiPerforce(sgtk.platform.Application):
         """
         try:
             tk_multi_perforce = self.import_module("tk_multi_perforce")
-            tk_multi_perforce.open_connection(self)
+            result = tk_multi_perforce.open_connection(self)
+            if result:
+                self.log_debug("Connection to Perforce server is successful!")
+                self.handle_connection_success(force_banner=True)
+
         except:
             self.handle_connection_error(force_banner=True)
 

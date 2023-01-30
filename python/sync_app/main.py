@@ -72,6 +72,12 @@ class SyncApp:
         self.input_data = self.entities_to_sync
         # TODO why create another variable here rather than just using the one we have?
 
+        self.row_data = {}
+        self.row = 0
+        self._total = 0
+        self.current_entity_index = 0
+        self.current_count = 0
+
     @property
     def logger(self):
         # TODO ensure that the logger actually logs with proper naming
@@ -102,10 +108,10 @@ class SyncApp:
         """
         import sys
 
-        app = QtGui.QApplication(sys.argv)
+        self._app = QtGui.QApplication(sys.argv)
         ui = Ui_Dialog(self.parent, self)
         ui.show()
-        app.exec_()
+        self._app.exec_()
 
     @property
     def p4(self):
@@ -138,6 +144,29 @@ class SyncApp:
         self.ui._do.clicked.connect(self.start_sync)
 
         self.logger.info("App build completed with workers")
+        # msg = "App build completed with workers"
+        # self.ui.add_log(msg)
+
+    def report_progress(self, item):
+        progress_sum = 0
+        self.entity_total = item.get("count", 0)
+        current_index = item.get("id", 0)
+        current_index += 1
+
+        if self._total > 0:
+            progress_sum = self.current_entity_index/self._total
+            if self.entity_total > 0:
+                progress_sum += (current_index / self.entity_total) / self._total
+        # self.logger.info(">>> current: {}, total: {}, sum: {}".format(current_index, self.entity_total, progress_sum))
+        if current_index == 0:
+            if self.entity_total < 100:
+                msg = "\nInitializing data for entity ...\n\n"
+            else:
+                msg = "\nInitializing data for entity. This may take few seconds ...\n\n"
+            self.ui.add_log(msg)
+
+        self.ui.update_progress_bar(progress_sum)
+
 
     def report_worker_info(self, item):
         """
@@ -155,6 +184,26 @@ class SyncApp:
         """
 
         self.ui.model.add_row(item)
+        # self.ui.reload_view()
+        # self.ui.show_tree()
+
+        data_dict = {}
+        data_dict["id"] = item.get("id", 0)
+        index = item.get("index", 0)
+        index += 1
+        if "item_found" in item:
+            data_dict["client_file"] = item["item_found"].get("clientFile", None)
+            msg = "({}/{}) Adding file: {}".format(index, self.entity_total, data_dict["client_file"])
+            # self.ui.add_log(msg)
+            self.ui.add_log(msg)
+
+
+        self.row_data[self.row] = data_dict
+
+        self.ui.get_row_data(self.parent_sgtk_app, self.row_data)
+        self.row += 1
+
+
 
     def item_completed(self, data):
 
@@ -162,6 +211,7 @@ class SyncApp:
         self.ui.model.add_row(data)
         # self.ui.model.refresh()
         # self.ui.reload_view()
+        # self.ui.app.processEvents()
 
     def timed_event_handler(self, key):
 
@@ -183,7 +233,7 @@ class SyncApp:
         self.ui.show_tree()
         self._cur_progress += 1
         self.logger.info("Progress: {}/{}".format(self._cur_progress, self._total))
-        self.progress_handler.iterate("assets_info")
+        #self.progress_handler.iterate("assets_info")
         self.ui.update_progress()
         self.logger.info("Finished gathering data from perforce.")
 
@@ -202,21 +252,25 @@ class SyncApp:
         self._total = len(self.entities_to_sync)
         self._cur_progress = 0
 
-        if not self.ui.progress_handler:
-            self.ui.progress_handler = self.progress_handler
+        #if not self.ui.progress_handler:
+        #    self.ui.progress_handler = self.progress_handler
 
-        self.progress_handler.track_progress(
-            **{"items": len(self.entities_to_sync), "id": "assets_info"}
-        )
+        #self.progress_handler.track_progress(
+        #    **{"items": len(self.entities_to_sync), "id": "assets_info"}
+        #)
 
-        for i in self.entities_to_sync:
+        for index, current_entity in enumerate(self.entities_to_sync):
+            self.current_entity_index = index
             asset_info_gather_worker = AssetInfoGatherWorker(
-                app=self.parent_sgtk_app, entity=i, framework=self.fw
+                app=self.parent_sgtk_app, entity=current_entity, framework=self.fw
             )
+            # entity_name = current_entity.get("name", None)
+            # msg = "Initializing data for entity: {}. This may take few seconds ...".format(entity_name)
+            # self.ui.add_log(msg)
 
             asset_info_gather_worker.force = self.ui._force_sync.isChecked()
             asset_info_gather_worker.p4 = self.p4
-
+            asset_info_gather_worker.total_items_found.connect(self.report_progress)
             # as workers emit the item_found_to_sync, hit that method with the payload from it
             asset_info_gather_worker.item_found_to_sync.connect(self.report_worker_info)
             asset_info_gather_worker.info_gathered.connect(self.data_gathering_complete)
@@ -239,10 +293,13 @@ class SyncApp:
     def item_completed_sync(self, status_dict):
         item = self.item_map.get(status_dict.get("model_item"))
 
-        self.progress_handler.iterate("sync_workers")
-        self.ui.update_progress()
+        #self.progress_handler.iterate("sync_workers")
+        #self.ui.update_progress()
+        #self.ui.update_progress_bar(0)
 
         # self.logger.info(status_dict.get("path"))
+        msg = "Syncing: {} ...".format(status_dict.get("path"))
+        self.ui.add_log(msg)
 
         item.syncing = False
 
@@ -260,6 +317,9 @@ class SyncApp:
         """
 
         self.ui.interactive = False
+
+        #msg = "Starting sync ..."
+        #self.ui.add_log(msg)
 
         # hold a map to our items while they process
         self.item_map = {}
@@ -293,6 +353,9 @@ class SyncApp:
         for worker in workers:
             self.threadpool.start(worker)
 
+        #msg = "Syncing is complete"
+        #self.ui.add_log(msg)
+
     def handle_raw_perforce_log(self, perforce_data):
         """
         Description:
@@ -308,4 +371,6 @@ class SyncApp:
 
         elif isinstance(perforce_data, str):
             message = perforce_data
-        self.ui.log_window.addItem(message)
+        # self.ui.log_window.addItem(message)
+        self.ui.add_log(message)
+

@@ -85,7 +85,7 @@ class SyncWorker(QtCore.QRunnable):
             logger.debug("P4 CONNECTION ESTABLISHED: {}".format(self.p4))
 
             # # run the syncs
-            logger.debug("THIS IS PATH_TO_SYNC: {}".format(self.path_to_sync))
+            #logger.debug("THIS IS PATH_TO_SYNC: {}".format(self.path_to_sync))
 
             p4_response = self.p4.run("sync", "-f", "{}#head".format(self.path_to_sync))
             # logger.debug("THIS IS P4_RESPONSE: {}".format(p4_response))
@@ -140,6 +140,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
         self.progress = self.signaller.progress
         self.root_path_resolved = self.signaller.root_path_resolved
         self.item_found_to_sync = self.signaller.item_found_to_sync
+        #self.sg_data_found_to_sync = self.signaller.sg_data_found_to_sync
         self.status_update = self.signaller.status_update
         self.includes = self.signaller.includes
         self.total_items_found = self.signaller.total_items_found
@@ -215,7 +216,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
             "items_to_sync": self._items_to_sync,
         }
 
-        logger.debug("These are items to sync: {}".format(self._items_to_sync))
+        #logger.debug("These are items to sync: {}".format(self._items_to_sync))
 
     def write_spec_file(self, contents):
         with open(self.spec_file, "w") as spec_file:
@@ -292,13 +293,15 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
 
             if self.status == "Syncd":
                 progress_status_string = " (Nothing to sync. Skipping...)"
-            self.log_error(str(self._items_to_sync))
+            # self.log_error(str(self._items_to_sync))
             if self.status != "Error":
 
                 if self._items_to_sync:
+                    items_count = len(self._items_to_sync)
 
+                    logger.info("Emitting info")
                     self.total_items_found.emit(
-                        {"id": self.id, "count": len(self._items_to_sync)}
+                        {"id": -1, "count": items_count}
                     )
                     # make lookup list for SG api call for published files to correlate.
                     depot_files = [i.get("depotFile") for i in self._items_to_sync]
@@ -309,6 +312,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                         "sg_p4_depo_path",
                         "task.Task.step.Step.code",
                         "published_file_type.PublishedFileType.code",
+                        "id"
                     ]
 
                     # if we want to look for results PER depot file, we look against the list
@@ -317,23 +321,32 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                     # if the entity itself is a PublishedFile, use it's ID
                     if self.entity.get("type") in ["PublishedFile"]:
                         sg_filter = ["id", "in", self.entity.get("id")]
-
+                    logger.info("Getting published files")
                     # get PublishedFile information needed, as configured above with fields and filters
                     published_files = self.app.shotgun.find(
                         "PublishedFile", [sg_filter], find_fields
                     )
+                    logger.info("Done, getting published files")
                     # make dictionary of items callable by key: sg_p4_depot_path
                     published_file_by_depot_file = {
                         i.get("sg_p4_depo_path"): i for i in published_files
                     }
+                    logger.info("Done, getting published files by depot")
                     # self.fw.log_info(published_file_by_depot_file)
-                    for item in self._items_to_sync:
+
+                    for j, item in enumerate(self._items_to_sync):
+                        #logger.info("{}: Items count: {}".format(j, items_count))
+                        if j % 50 == 0 or j == items_count-1:
+                            self.total_items_found.emit(
+                                {"id": j, "count": items_count}
+                            )
 
                         published_file = published_file_by_depot_file.get(
                             item.get("depotFile")
                         )
 
                         for i in self.asset_map.keys():
+
                             # self.log_error(i)
                             # self.log_error(item.get("clientFile"))
                             if i in item.get("clientFile"):
@@ -344,8 +357,10 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                         ext = None
                         step = None
                         file_type = None
+                        id = 0
 
                         if published_file:
+                            id = published_file.get('id')
 
                             step = published_file.get("task.Task.step.Step.code")
                             if step:
@@ -377,10 +392,12 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                                 "type": file_type,
                                 "ext": ext.lower(),
                                 "status": status,
+                                "id": id,
+                                "index": j
                             }
                         )
                 else:
-                    self.total_items_found.emit({"id": self.id, "count": 1})
+                    #self.total_items_found.emit({"id": self.id, "count": 1})
                     self.item_found_to_sync.emit(
                         {
                             "worker_id": self.id,
