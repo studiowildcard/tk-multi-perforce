@@ -89,9 +89,13 @@ class SyncWorker(QtCore.QRunnable):
                 self.started.emit({"model_item": path_info["id"]})
                 p4_response = self.p4.run("sync", "-f", path_info["path"] + "#head")
 
-                logger.debug("THIS IS P4_RESPONSE: {}".format(p4_response))
+                # logger.debug("THIS IS P4_RESPONSE: {}".format(p4_response))
                 self.completed.emit(
-                    {"model_item": path_info["id"], "path": path_info["path"]}
+                    {
+                        "model_item": path_info["id"],
+                        "path": path_info["path"],
+                        "info": p4_response,
+                    }
                 )
 
         except Exception as e:
