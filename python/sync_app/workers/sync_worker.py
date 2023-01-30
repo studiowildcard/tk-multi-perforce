@@ -48,24 +48,26 @@ class AssetInfoGatherSignaller(QtCore.QObject):
 class SyncWorker(QtCore.QRunnable):
 
     # structurally anticipate basic p4 calls, which will route to the main form.
-    p4 = None
+    fw = None
 
     path_to_sync = None
     asset_name = None
     item = None
 
-    def __init__(self):
+    def __init__(self, fw, paths_to_sync):
         """
         Handles syncing specific file from perforce depot to local workspace on disk
         """
         super(SyncWorker, self).__init__()
         self.signaller = SyncSignaller()
-
+        self.fw = fw
+        self.p4 = self.fw.connection.connect(progress=True)
         # use signals from Signaller, since we cant in a non-QObject derrived
         # object like this QRunner.
         self.started = self.signaller.started
         self.finished = self.signaller.finished
         self.completed = self.signaller.completed
+        self.paths_to_sync = paths_to_sync
 
     def log_error(self, e):
         self.fw.log_error(str(e))
@@ -79,20 +81,22 @@ class SyncWorker(QtCore.QRunnable):
         """
         try:
 
-            self.started.emit({"model_item": self.id})
-
-            self.p4 = self.fw.connection.connect()
             logger.debug("P4 CONNECTION ESTABLISHED: {}".format(self.p4))
 
             # # run the syncs
-            logger.debug("THIS IS PATH_TO_SYNC: {}".format(self.path_to_sync))
+            logger.debug("THIS IS PATH_TO_SYNC: {}".format(self.paths_to_sync))
+            for path_info in self.paths_to_sync:
+                self.started.emit({"model_item": path_info["id"]})
+                p4_response = self.p4.run("sync", "-f", path_info["path"] + "#head")
 
-            p4_response = self.p4.run("sync", "-f", "{}#head".format(self.path_to_sync))
-            # logger.debug("THIS IS P4_RESPONSE: {}".format(p4_response))
-
-            # emit item key and p4 response to main thread
-
-            self.completed.emit({"model_item": self.id, "path": self.path_to_sync})
+                # logger.debug("THIS IS P4_RESPONSE: {}".format(p4_response))
+                self.completed.emit(
+                    {
+                        "model_item": path_info["id"],
+                        "path": path_info["path"],
+                        "info": p4_response,
+                    }
+                )
 
         except Exception as e:
             import traceback
