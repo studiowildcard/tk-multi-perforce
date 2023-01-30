@@ -241,7 +241,6 @@ class SyncApp:
         # make sure that the item knows its syncing,
         item = self.item_map.get(status_dict.get("model_item"))
         item.syncing = True
-        # self.ui.model.refresh()
 
     def item_completed_sync(self, status_dict):
         item = self.item_map.get(status_dict.get("model_item"))
@@ -257,8 +256,6 @@ class SyncApp:
             item.error = status_dict["error"]
         else:
             item.syncd = True
-
-        # self.ui.model.refresh()
 
     def handle(self, info):
         self.logger.info(str(info))
@@ -288,7 +285,7 @@ class SyncApp:
                         self.item_map[sync_item.id] = sync_item
                         # sync_worker.id = sync_item.id
                         sync_request = {"id": sync_item.id, "path": sync_item.data(5)}
-                        if int(float(sync_item.data(4))) > 500:
+                        if float(sync_item.data(4)) > 500.0:
                             worker_path_batches.append([sync_request])
                         elif path_count < self._max_thread_count:
                             paths_to_sync.append(sync_request)
@@ -297,6 +294,7 @@ class SyncApp:
                             worker_path_batches.append(paths_to_sync)
                             paths_to_sync = [sync_request]
                             path_count = 1
+
             self.logger.info(str(worker_path_batches))
             worker_path_batches.append(paths_to_sync)
             queue_length = 0
@@ -310,14 +308,17 @@ class SyncApp:
                 # sync_worker.p4.progress.description.connect(self.handle)
 
                 queue_length += len(batch)
-
+                self.logger.info(str(queue_length))
+                workers.append(sync_worker)
                 # ±for worker in workers:
 
-                self.threadpool.start(sync_worker)
             self.progress_handler.queue = {}
             self.progress_handler.track_progress(
                 **{"items": queue_length, "id": "sync_workers"}
             )
+
+            for worker in workers:
+                self.threadpool.start(worker)
         except Exception as e:
             self.logger.error(e)
 
