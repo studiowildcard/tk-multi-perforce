@@ -91,7 +91,6 @@ class Ui_Dialog(Ui_Generic):
         # hook a helper model tracking status codes so we
         # can use those in the UI
         self._status_model = SgStatusModel(self, self._task_manager)
-
         self.init_details_panel()
 
     def get_row_data(self, app, row_data):
@@ -139,6 +138,7 @@ class Ui_Dialog(Ui_Generic):
         # self.log_window.setMinimumHeight(200)
         # self.log_window.verticalScrollBar().setValue(self.log_window.verticalScrollBar().maximum())
         """
+
         self.log_window = QtWidgets.QTextBrowser()
         self.log_window.verticalScrollBar().setValue(self.log_window.verticalScrollBar().maximum())
         self.log_window.setMinimumHeight(200)
@@ -253,6 +253,9 @@ class Ui_Dialog(Ui_Generic):
 
 
         # details layout
+        self._no_selection_pixmap = QtGui.QPixmap(":/res/no_item_selected_512x400.png")
+        self._no_pubs_found_icon = QtGui.QPixmap(":/res/no_publishes_found.png")
+
         self.details_layout = QtGui.QVBoxLayout()
         self.details_layout.setSpacing(2)
         self.details_layout.setContentsMargins(4, 4, 4, 4)
@@ -273,6 +276,7 @@ class Ui_Dialog(Ui_Generic):
         self.details_image.setScaledContents(True)
         self.details_image.setAlignment(QtCore.Qt.AlignCenter)
         self.details_image.setObjectName("details_image")
+        self.details_image.setPixmap(self._no_selection_pixmap)
         self.horizontalLayout.addWidget(self.details_image)
         spacerItem3 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem3)
@@ -444,8 +448,7 @@ class Ui_Dialog(Ui_Generic):
         self._multiple_publishes_pixmap = QtGui.QPixmap(
             ":/res/multiple_publishes_512x400.png"
         )
-        self._no_selection_pixmap = QtGui.QPixmap(":/res/no_item_selected_512x400.png")
-        self._no_pubs_found_icon = QtGui.QPixmap(":/res/no_publishes_found.png")
+
 
         self.detail_playback_btn.clicked.connect(self._on_detail_version_playback)
         self._current_version_detail_playback_url = None
@@ -460,6 +463,7 @@ class Ui_Dialog(Ui_Generic):
 
         # if an item in the list is double clicked the default action is run
         self.history_view.doubleClicked.connect(self._on_history_double_clicked)
+        self._default_details_panel()
 
     def rescan(self):
 
@@ -569,7 +573,13 @@ class Ui_Dialog(Ui_Generic):
 
             # if there is something selected, make sure the detail
             # section is focused on this
-            self._setup_details_panel(self._key, self._id)
+            if self._key:
+                self._setup_details_panel(self._key, self._id)
+            else:
+                self._default_details_panel()
+
+        # logger.info("key is: {}, id is {}".format(self._key, self._id))
+        self.log_window.verticalScrollBar().setValue(self.log_window.verticalScrollBar().maximum())
 
     def _get_sg_data_dict(self, key, id):
         """
@@ -587,6 +597,11 @@ class Ui_Dialog(Ui_Generic):
             sg_data_dict = self._sg.find_one('PublishedFile', filters, fields)
 
         return sg_data_dict
+
+    def _default_details_panel(self):
+        self._publish_history_model.clear()
+        self.details_header.setText("")
+        self.details_image.setPixmap(self._no_selection_pixmap)
 
     def _setup_details_panel(self, key, id):
         """
@@ -631,7 +646,8 @@ class Ui_Dialog(Ui_Generic):
             return
 
         if not key:
-            __clear_publish_history(self._no_selection_pixmap)
+            #__clear_publish_history(self._no_selection_pixmap)
+            __clear_publish_history(self._no_pubs_found_icon)
 
         if key and id == 0:
             __clear_publish_history(self._no_pubs_found_icon)
@@ -808,32 +824,32 @@ class Ui_Dialog(Ui_Generic):
         row = index.row()
         if row in self._row_data and self._row_data[row]:
             data = self._row_data[row]
+            # logger.info("data is: {}".format(data))
             key, id = data.get("client_file", None), data.get("id", 0)
-            msg = "Getting details for file: {}".format(key)
+            if key:
+                msg = "Displaying details of file: {}".format(key)
+            else:
+                msg = "Publish data is not available for this item"
             self.add_log(msg)
 
-        else:
-            key = index.data()
-            id = 0
 
         #logger.info("on_item_clicked: key: {}".format(key))
-        try:
-            key = os.path.basename(key)
-        except:
+        if key:
             try:
-                key = key.split("\\")[-1]
+                key = os.path.basename(key)
             except:
                 try:
-                    key = key.split("/")[-1]
+                    key = key.split("\\")[-1]
                 except:
-                    logger.info("Unable to get file path")
-                    return False
+                    try:
+                        key = key.split("/")[-1]
+                    except:
+                        logger.info("Unable to get file path")
+
         #logger.info("on_item_clicked: base key: {}".format(key))
         self._key = key
         self._id = id
         self._setup_details_panel(key, id)
-        return True
-
 
 
     def _on_history_selection(self, selected, deselected):
