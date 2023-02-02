@@ -65,6 +65,8 @@ class Ui_Dialog(Ui_Generic):
         self._asset_tree = QtGui.QTreeWidget()  # create asset tree
         self._asset_tree.clear()
 
+        self._items_tree = QtGui.QTreeWidget()
+
         self._progress_bar = QtGui.QProgressBar()  # create progress bar
         self._global_progress_bar = QtGui.QProgressBar()  # create progress bar
         self._list = QtGui.QListWidget()
@@ -111,6 +113,17 @@ class Ui_Dialog(Ui_Generic):
         self._main_layout = QtGui.QVBoxLayout()
         self._menu_layout = QtGui.QHBoxLayout()
 
+        self.items_widget = QtGui.QWidget()
+        self.items_layout = QtGui.QHBoxLayout()
+
+        self.items_layout.addWidget(self.tree_view)
+        self.t2 = QtGui.QTreeView()
+        self.t3 = QtGui.QTreeView()
+
+        self.items_layout.addWidget(self.t2)
+        self.items_layout.addWidget(self.t3)
+        self.items_widget.setLayout(self.items_layout)
+
         self.setLayout(self._main_layout)
 
         self._progress_bar.setVisible(False)  # hide progress until we run the sync
@@ -119,7 +132,7 @@ class Ui_Dialog(Ui_Generic):
         self.tree_view.setModel(self.proxy_model)
         self.tree_view.setAnimated(True)
 
-        self.view_stack.addWidget(self.tree_view)
+        self.view_stack.addWidget(self.items_widget)
         self.view_stack.addWidget(self.b)
         self.view_stack.setCurrentWidget(self.b)
 
@@ -474,7 +487,7 @@ class Ui_Dialog(Ui_Generic):
         self.model.refresh()
 
     def show_tree(self):
-        self.view_stack.setCurrentWidget(self.tree_view)
+        self.view_stack.setCurrentWidget(self.items_widget)
 
     def show_waiting(self):
         self.view_stack.setCurrentWidget(self.b)
