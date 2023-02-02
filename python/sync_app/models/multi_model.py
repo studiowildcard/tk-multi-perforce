@@ -18,6 +18,7 @@ class MultiModel(QtCore.QAbstractItemModel):
         self.main_ui = parent
         self.primary_roots = {}
         self.paths = {}
+        self.title_roots = {}
         self.schemas = Schemas()
         self.resolver = SyncResolver()
 
@@ -167,15 +168,15 @@ class MultiModel(QtCore.QAbstractItemModel):
                     primary=True,
                 )
                 self.primary_roots[data_item["asset_name"]] = asset_item
-            if data_item.get("item_found"):
-                sync_item = Row(
-                    data=data_item,
-                    parent=self.primary_roots[data_item["asset_name"]],
-                    schema=self.schemas.sync_item,
-                    resolver=self.resolver,
-                )
+            # if data_item.get("item_found"):
+            #     sync_item = Row(
+            #         data=data_item,
+            #         parent=self.primary_roots[data_item["asset_name"]],
+            #         schema=self.schemas.sync_item,
+            #         resolver=self.resolver,
+            #     )
 
-            self.refresh()
+            # self.refresh()
 
         # lines is our list
 
