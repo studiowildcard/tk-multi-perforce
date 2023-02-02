@@ -263,6 +263,7 @@ class Ui_Dialog(Ui_Generic):
 
         self.horizontalLayout = QtGui.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
+        self.horizontalLayout.setContentsMargins(0, 5, 0, 25)
         spacerItem2 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem2)
         self.details_image = QtGui.QLabel()
@@ -278,7 +279,7 @@ class Ui_Dialog(Ui_Generic):
         self.details_image.setObjectName("details_image")
         self.details_image.setPixmap(self._no_selection_pixmap)
         self.horizontalLayout.addWidget(self.details_image)
-        spacerItem3 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
+        spacerItem3 = QtGui.QSpacerItem(40, 40, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem3)
         self.details_layout.addLayout(self.horizontalLayout)
 
@@ -342,7 +343,7 @@ class Ui_Dialog(Ui_Generic):
 
         self.container_widget = QtGui.QWidget()
         self.container_widget.setLayout(self.details_layout)
-        self.container_widget.setFixedWidth(350)
+        self.container_widget.setFixedWidth(300)
         self.container_widget.setVisible(False)
 
         # arrange widgets in gui layout
@@ -510,15 +511,15 @@ class Ui_Dialog(Ui_Generic):
                 self._global_progress_bar.setValue(0)
 
     def update_progress_bar(self, val):
-        if val > 0:
-            self._progress_bar.setVisible(True)
-            self._progress_bar.setRange(0, 100)
-            self._progress_bar.setValue(val * 100)
-        else:
+        if val <= 0 or val >= 1:
             self._progress_bar.setVisible(False)
             self._progress_bar.setValue(0)
             self._global_progress_bar.setVisible(False)
             self._global_progress_bar.setValue(0)
+        else:
+            self._progress_bar.setVisible(True)
+            self._progress_bar.setRange(0, 100)
+            self._progress_bar.setValue(val * 100)
 
     def icon_path(self, name):
         # icon_path = None
@@ -820,33 +821,34 @@ class Ui_Dialog(Ui_Generic):
         """
         Single click on tree item
         """
+        key, id = None, 0
 
-        row = index.row()
-        if row in self._row_data and self._row_data[row]:
-            data = self._row_data[row]
-            # logger.info("data is: {}".format(data))
-            key, id = data.get("client_file", None), data.get("id", 0)
-            if key:
-                msg = "Displaying details of file: {}".format(key)
-            else:
-                msg = "Publish data is not available for this item"
-            self.add_log(msg)
+        # map from the SortFilterProxy item to the original model pointer, get Row item from it
+        pointer_to_source_item = self.proxy_model.mapToSource(
+            index
+        ).internalPointer()
 
+        # get index of the column
+        path_index = pointer_to_source_item.schema.key_index_map.get("item_found")
+        # retrieve the path for that item on the given index
+        key = pointer_to_source_item.rowData[path_index]
+        logger.info(">>>>>> key: {}".format(key))
 
-        #logger.info("on_item_clicked: key: {}".format(key))
+        if key in self._row_data:
+            id = self._row_data[key]
+
+        if key:
+            msg = "Displaying details of file: {}".format(key)
+        else:
+            msg = "Publish data is not available for this item"
+        self.add_log(msg)
+
         if key:
             try:
                 key = os.path.basename(key)
             except:
-                try:
-                    key = key.split("\\")[-1]
-                except:
-                    try:
-                        key = key.split("/")[-1]
-                    except:
-                        logger.info("Unable to get file path")
+                logger.info("Unable to get file path")
 
-        #logger.info("on_item_clicked: base key: {}".format(key))
         self._key = key
         self._id = id
         self._setup_details_panel(key, id)

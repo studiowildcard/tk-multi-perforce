@@ -184,26 +184,17 @@ class SyncApp:
         """
 
         self.ui.model.add_row(item)
-        # self.ui.reload_view()
-        # self.ui.show_tree()
 
-        data_dict = {}
-        data_dict["id"] = item.get("id", 0)
         index = item.get("index", 0)
         index += 1
         if "item_found" in item:
-            data_dict["client_file"] = item["item_found"].get("clientFile", None)
-            msg = "({}/{}) Adding file: {}".format(index, self.entity_total, data_dict["client_file"])
-            # self.ui.add_log(msg)
+            key = item["item_found"].get("clientFile", None)
+            id = item.get("id", 0)
+            self.row_data[key] = id
+            self.ui.get_row_data(self.parent_sgtk_app, self.row_data)
+
+            msg = "({}/{}) Adding file: {}".format(index, self.entity_total, key)
             self.ui.add_log(msg)
-
-
-        self.row_data[self.row] = data_dict
-
-        self.ui.get_row_data(self.parent_sgtk_app, self.row_data)
-        self.row += 1
-
-
 
     def item_completed(self, data):
 
@@ -211,7 +202,6 @@ class SyncApp:
         self.ui.model.add_row(data)
         # self.ui.model.refresh()
         # self.ui.reload_view()
-        # self.ui.app.processEvents()
 
     def timed_event_handler(self, key):
 
@@ -264,9 +254,6 @@ class SyncApp:
             asset_info_gather_worker = AssetInfoGatherWorker(
                 app=self.parent_sgtk_app, entity=current_entity, framework=self.fw
             )
-            # entity_name = current_entity.get("name", None)
-            # msg = "Initializing data for entity: {}. This may take few seconds ...".format(entity_name)
-            # self.ui.add_log(msg)
 
             asset_info_gather_worker.force = self.ui._force_sync.isChecked()
             asset_info_gather_worker.p4 = self.p4
