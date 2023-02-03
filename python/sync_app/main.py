@@ -62,7 +62,10 @@ class SyncApp:
         self.timer_worker = TimeLord()
         self.timer_worker.update_ui.connect(self.timed_event_handler)
         self.threadpool.start(self.timer_worker)
-        self.threadpool.setMaxThreadCount(min(23, self.threadpool.maxThreadCount()))
+
+        self._max_thread_count = 60  # min(23, self.threadpool.maxThreadCount())
+
+        self.threadpool.setMaxThreadCount(self._max_thread_count)
         self.model_view_updating = False
 
         # file base for accessing Qt resources outside of resource scope
@@ -155,7 +158,7 @@ class SyncApp:
             sgtk.TankError: _description_
         """
 
-        self.ui.model.add_row(item)
+        # self.ui.model.add_row(item)
         self.ui.items_list.add_item(item.get("asset_name"), item)
         self.ui.item_details_widget.add_item_details(item.get("asset_name"), item)
 
@@ -256,7 +259,7 @@ class SyncApp:
         else:
             item.syncd = True
 
-        # self.ui.model.refresh()
+        self.ui.item_details_widget.summarize_model(status_dict.get("asset_name"))
 
     def start_sync(self):
         """
@@ -268,38 +271,57 @@ class SyncApp:
 
         # hold a map to our items while they process
         self.item_map = {}
-
+        worker_path_batches = []
+        path_count = 1
+        paths_to_sync = []
         workers = []
         for asset in self.ui.items_list._index:
-            for sync_item in self.ui.item_details_widget._models[
+            for sync_item in self.ui.item_details_widget._details[
                 asset
-            ].rootItem.children:
+            ].model.rootItem.children:
 
                 if sync_item.should_be_visible:
                     # log.debug("THIS IS SYNC_ITEM: {}".format(sync_item.data_in))
-                    sync_worker = SyncWorker()
-
+                    # log.debug("THIS IS SYNC_ITEM: {}".format(sync_item.data_in))
+                    sync_item.asset_name = asset
                     self.item_map[sync_item.id] = sync_item
-                    sync_worker.id = sync_item.id
+                    # sync_worker.id = sync_item.id
+                    sync_request = {
+                        "id": sync_item.id,
+                        "path": sync_item.data(5),
+                        "asset_name": asset,
+                    }
+                    if float(sync_item.data(4)) > 500.0:
+                        worker_path_batches.append([sync_request])
+                    elif path_count < self._max_thread_count:
+                        paths_to_sync.append(sync_request)
+                        path_count += 1
+                    else:
+                        worker_path_batches.append(paths_to_sync)
+                        paths_to_sync = [sync_request]
+                        path_count = 1
 
-                    sync_worker.path_to_sync = sync_item.data(5)
-                    sync_worker.asset_name = asset
+        self.logger.info(str(worker_path_batches))
+        worker_path_batches.append(paths_to_sync)
+        queue_length = 0
 
-                    sync_worker.fw = self.fw
-
-                    sync_worker.started.connect(self.item_starting_sync)
-                    sync_worker.completed.connect(self.item_completed_sync)
-
-                    workers.append(sync_worker)
-
-        queue_length = len(workers)
         self.progress_handler.queue = {}
         self.progress_handler.track_progress(
-            **{"items": queue_length, "id": "sync_workers"}
+            **{
+                "items": sum([len(i) for i in worker_path_batches]),
+                "id": "sync_workers",
+            }
         )
-        for worker in workers:
-            self.threadpool.start(worker)
-            self.logger.info("Started worker...")
+
+        for batch in worker_path_batches:
+            self.logger.info("Adding batch of paths to the sync worker to sync.")
+            sync_worker = SyncWorker(self.fw, batch)
+            sync_worker.started.connect(self.item_starting_sync)
+            sync_worker.completed.connect(self.item_completed_sync)
+
+            # connect progress-specific signals
+            # sync_worker.p4.progress.description.connect(self.handle)
+            self.threadpool.start(sync_worker)
 
     def handle_raw_perforce_log(self, perforce_data):
         """
