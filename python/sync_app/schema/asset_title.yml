@@ -1,0 +1,8 @@
+- key: asset_name
+  title: Name
+  transform: asset_name
+  default: No name
+  icon: Asset
+- key: _
+  title: Progress
+  default: _
