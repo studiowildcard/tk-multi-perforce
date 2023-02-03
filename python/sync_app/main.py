@@ -170,6 +170,7 @@ class SyncApp:
                 if self.model_view_updating != True:
                     self.model_view_updating = True
                     self.ui.model.refresh()
+                    self.ui.tree_view.expandAll()
                 self.model_view_updating = False
 
     def data_gathering_complete(self, completion_dict: dict) -> None:

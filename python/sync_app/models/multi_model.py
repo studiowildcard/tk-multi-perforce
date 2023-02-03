@@ -157,6 +157,29 @@ class MultiModel(QtCore.QAbstractItemModel):
         self.dataChanged.emit(QtCore.QModelIndex(), QtCore.QModelIndex())
         self.layoutChanged.emit()
 
+    def add_details(self, data_item):
+        # if data_item.get("asset_name"):
+        #     if not self.primary_roots.get(data_item["asset_name"]):
+        #         asset_item = Row(
+        #             data=data_item,
+        #             parent=self.rootItem,
+        #             schema=self.schemas.asset_item,
+        #             resolver=self.resolver,
+        #             primary=True,
+        #         )
+        #         self.primary_roots[data_item["asset_name"]] = asset_item
+        if data_item.get("item_found"):
+            sync_item = Row(
+                data=data_item,
+                parent=self.rootItem,
+                schema=self.schemas.sync_item,
+                resolver=self.resolver,
+            )
+
+            # self.refresh()
+
+        # lines is our list
+
     def add_row(self, data_item):
         if data_item.get("asset_name"):
             if not self.primary_roots.get(data_item["asset_name"]):
