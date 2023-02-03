@@ -26,5 +26,5 @@ class TimeLord(QtCore.QRunnable):
     @QtCore.Slot()
     def run(self):
         while True:
-            time.sleep(2)
+            time.sleep(1)
             self.update_ui.emit("model_view_update")
