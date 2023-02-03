@@ -22,7 +22,8 @@ from .workers.timed_events import TimeLord
 
 log = sgtk.platform.get_logger(__name__)
 
-# @method_decorator(trace)
+
+@method_decorator(trace)
 class SyncApp:
 
     _fw = None
@@ -171,8 +172,9 @@ class SyncApp:
             if not self.ui.interactive:
                 if self.model_view_updating != True:
                     self.model_view_updating = True
-                    self.ui.model.refresh()
-                    self.ui.tree_view.expandAll()
+                    # self.ui.model.refresh()
+                    self.ui.item_details_widget.refresh()
+                    # self.ui.tree_view.expandAll()
                 self.model_view_updating = False
 
     def data_gathering_complete(self, completion_dict: dict) -> None:
@@ -268,8 +270,10 @@ class SyncApp:
         self.item_map = {}
 
         workers = []
-        for asset in self.ui.model.rootItem.childItems:
-            for sync_item in asset.childItems:
+        for asset in self.ui.items_list._index:
+            for sync_item in self.ui.item_details_widget._models[
+                asset
+            ].rootItem.children:
 
                 if sync_item.should_be_visible:
                     # log.debug("THIS IS SYNC_ITEM: {}".format(sync_item.data_in))
@@ -279,7 +283,7 @@ class SyncApp:
                     sync_worker.id = sync_item.id
 
                     sync_worker.path_to_sync = sync_item.data(5)
-                    sync_worker.asset_name = sync_item.parent().data(1).split(" ")[0]
+                    sync_worker.asset_name = asset
 
                     sync_worker.fw = self.fw
 
@@ -295,6 +299,7 @@ class SyncApp:
         )
         for worker in workers:
             self.threadpool.start(worker)
+            self.logger.info("Started worker...")
 
     def handle_raw_perforce_log(self, perforce_data):
         """
