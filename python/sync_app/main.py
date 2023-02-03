@@ -155,7 +155,7 @@ class SyncApp:
         """
 
         self.ui.model.add_row(item)
-
+        self.ui.items_list.add_item(item.get("asset_name"), item)
         self.ui.item_details_widget.add_item_details(item.get("asset_name"), item)
 
     def item_completed(self, data):
