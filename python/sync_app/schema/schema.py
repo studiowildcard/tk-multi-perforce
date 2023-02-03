@@ -6,7 +6,8 @@ import logging
 from tank_vendor import yaml
 
 
-#TODO on schema class if creating empty class, this must specifically be specified
+# TODO on schema class if creating empty class, this must specifically be specified
+
 
 class Schemas(object):
     def __init__(self):
@@ -17,8 +18,6 @@ class Schemas(object):
             return True
         return False
 
-
-
     def __getattr__(self, attr):
         attr = attr.replace(" ", "_").replace("-", "_")
         if attr not in self._schemas.keys():
@@ -27,14 +26,15 @@ class Schemas(object):
             self._schemas[attr] = schema
         return self._schemas[attr]
 
+    def __getitem__(self, key):
+        return getattr(self, key)
+
 
 class Schema(object):
     def __init__(self, template_schema=None):
 
         self.schema = None
         self.type = None
-
-        
 
         if template_schema != None:
             schema = self.load_schema_from_yaml(template_schema)
@@ -51,16 +51,15 @@ class Schema(object):
             if key in i.keys():
                 index_map[i[key]] = idx
         return index_map
-    
+
     def extract_filters(self):
         filters = []
         for entry in self.schema:
-            if entry.get('filter'):
-                filters.append(entry.get('key'))
-            
+            if entry.get("filter"):
+                filters.append(entry.get("key"))
+
         return filters
-                
- 
+
     def load_schema_from_yaml(self, name_of_file):
         # TODO consider if the yaml file does not exist in the same folder.
 
@@ -77,13 +76,12 @@ class Schema(object):
                 return schema
 
         except:
-            #TODO lets implement a specific exception
+            # TODO lets implement a specific exception
             raise "TODO implement something here"
 
     @property
     def schema_type(self):
         return self.type
-
 
     @classmethod
     def from_name(cls, name):
