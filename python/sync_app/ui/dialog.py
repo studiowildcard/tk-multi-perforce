@@ -17,7 +17,9 @@ from .delegates import ProgressDelegate
 logger = sgtk.platform.get_logger(__name__)
 
 
-class ItemDetailsWidget(QtGui.QWidget):
+class ItemSelector(QtGui.QWidget):
+    item_selected = QtCore.Signal(dict)
+
     def __init__(self, parent, logger=None):
         """
         Construction of generic base ui, containing
@@ -26,7 +28,28 @@ class ItemDetailsWidget(QtGui.QWidget):
         Super-ing this class at the end of your inherited class allows you to specify the
         widgets and layout as you wish first, and this base class will build it for you
         """
-        super(ItemDetailsWidget, self).__init__(parent)
+        super(ItemSelector, self).__init__(parent)
+        self.logger = logger
+        self._items = {}
+        self._index = []
+        self.main_layout = QtGui.QVBoxLayout()
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(self.main_layout)
+
+        self.list_widget = QtGui.QListWidget()
+        self.main_layout.addWidget(self.list_widget)
+
+        self.list_widget.currentRowChanged.connect(self.item_clicked)
+
+    def add_item(self, key, data):
+        if key not in self._items:
+            self._items[key] = data
+            self._index.append(key)
+            self.list_widget.addItem(key)
+
+    def item_clicked(self, index):
+        name = self._index[index]
+        self.item_selected.emit(self._items[name])
 
 
 class ItemDetailsWidget(QtGui.QWidget):
@@ -213,7 +236,9 @@ class Ui_Dialog(Ui_Generic):
         self.items_widget = QtGui.QWidget()
         self.items_layout = QtGui.QHBoxLayout()
 
-        self.items_layout.addWidget(self.tree_view)
+        self.items_list = ItemSelector(self, self.logger)
+        self.items_list.item_selected.connect(self.item_context_changed)
+        self.items_layout.addWidget(self.items_list)
         self.t2 = QtGui.QTreeView()
         self.t3 = QtGui.QTreeView()
 
@@ -601,15 +626,13 @@ class Ui_Dialog(Ui_Generic):
 
 
         """
-        index = self.tree_view.selectedIndexes()[0]
-        # crawler = index.model().itemFromIndex(index)
+        # index = self.tree_view.selectedIndexes()[0]
+        # # crawler = index.model().itemFromIndex(index)
 
-        pointer_to_source_item = self.proxy_model.mapToSource(index).internalPointer()
+        # pointer_to_source_item = self.proxy_model.mapToSource(index).internalPointer()
 
-        name = pointer_to_source_item.data(0)
-        self.item_details_widget.show_details_pane(name)
-
-        self.logger.error(str(name))
+        # name = pointer_to_source_item.data(0)
+        self.item_details_widget.show_details_pane(test.get("asset_name"))
 
 
 class listWidget(QtGui.QListWidget):
