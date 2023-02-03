@@ -16,6 +16,63 @@ from ..models.model_filter import SortFilterModel
 logger = sgtk.platform.get_logger(__name__)
 
 
+class ItemDetailsWidget(QtGui.QWidget):
+    def __init__(self, parent, logger=None):
+        """
+        Construction of generic base ui, containing
+        common utilities and methods for Ui state and management
+
+        Super-ing this class at the end of your inherited class allows you to specify the
+        widgets and layout as you wish first, and this base class will build it for you
+        """
+        super(ItemDetailsWidget, self).__init__(parent)
+
+        self.parent = parent
+        self.logger = logger
+
+        self._current_view = None
+
+        self._views = {}
+        self._models = {}
+        self._items = {}
+
+        self.stack = QtGui.QStackedWidget()
+
+        self.main_layout = QtGui.QVBoxLayout()
+        self.main_layout.addWidget(self.stack)
+        self.setLayout(self.main_layout)
+
+    def add_details_pane(self, name, data):
+        # adds details pane for
+
+        # make the view
+        widget = QtGui.QWidget()
+        layout = QtGui.QVBoxLayout()
+        widget.setLayout(layout)
+        button = QtGui.QPushButton(name)
+        layout.addWidget(button)
+        self._items[name] = widget
+        self.stack.addWidget(self._items[name])
+
+        self._models[name] = MultiModel(parent=self.parent)
+
+        tree_view = QtGui.QTreeView()
+        tree_view.setModel(self._models[name])
+        layout.addWidget(tree_view)
+
+        self.show_details_pane(name)
+
+    def show_details_pane(self, name):
+        if self._items.get(name):
+            self.stack.setCurrentWidget(self._items[name])
+
+    def add_item_details(self, name, data):
+        if not name in self._items:
+            self.add_details_pane(name, data)
+        self._models[name].add_details(data)
+        self._models[name].refresh()
+
+
 # @method_decorator(trace)
 class Ui_Dialog(Ui_Generic):
     """
@@ -120,8 +177,9 @@ class Ui_Dialog(Ui_Generic):
         self.t2 = QtGui.QTreeView()
         self.t3 = QtGui.QTreeView()
 
-        self.items_layout.addWidget(self.t2)
-        self.items_layout.addWidget(self.t3)
+        self.item_details_widget = ItemDetailsWidget(self)
+        self.items_layout.addWidget(self.item_details_widget)
+
         self.items_widget.setLayout(self.items_layout)
 
         self.setLayout(self._main_layout)
@@ -192,6 +250,9 @@ class Ui_Dialog(Ui_Generic):
         # connect right_click_menu to tree
         self.tree_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.tree_view.customContextMenuRequested.connect(self.open_context_menu)
+        self.tree_view.selectionModel().selectionChanged.connect(
+            self.item_context_changed
+        )
 
         # emulate UI event of triggering filters
         self.filter_triggered()
@@ -491,6 +552,22 @@ class Ui_Dialog(Ui_Generic):
 
     def show_waiting(self):
         self.view_stack.setCurrentWidget(self.b)
+
+    def item_context_changed(self, test=None):
+        """
+        Resolves the model item row when clicked.
+
+
+        """
+        index = self.tree_view.selectedIndexes()[0]
+        # crawler = index.model().itemFromIndex(index)
+
+        pointer_to_source_item = self.proxy_model.mapToSource(index).internalPointer()
+
+        name = pointer_to_source_item.data(0)
+        self.item_details_widget.show_details_pane(name)
+
+        self.logger.error(str(name))
 
 
 class listWidget(QtGui.QListWidget):
