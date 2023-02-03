@@ -12,6 +12,7 @@ from .base_ui import Ui_Generic
 from ..models.multi_model import MultiModel
 from ..models.model_filter import SortFilterModel
 
+from .delegates import ProgressDelegate
 
 logger = sgtk.platform.get_logger(__name__)
 
@@ -27,19 +28,35 @@ class ItemDetailsWidget(QtGui.QWidget):
         """
         super(ItemDetailsWidget, self).__init__(parent)
 
+
+class ItemDetailsWidget(QtGui.QWidget):
+    def __init__(self, parent, logger=None):
+        """
+        Construction of generic base ui, containing
+        common utilities and methods for Ui state and management
+
+        Super-ing this class at the end of your inherited class allows you to specify the
+        widgets and layout as you wish first, and this base class will build it for you
+        """
+        super(ItemDetailsWidget, self).__init__(parent)
+        self.setContentsMargins(0, 0, 0, 0)
+
         self.parent = parent
         self.logger = logger
 
-        self._current_view = None
+        self._current_item = None
 
         self._views = {}
         self._models = {}
+        self._proxy_models = {}
         self._items = {}
+        self._buttons = {}
 
         self.stack = QtGui.QStackedWidget()
 
         self.main_layout = QtGui.QVBoxLayout()
         self.main_layout.addWidget(self.stack)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.main_layout)
 
     def add_details_pane(self, name, data):
@@ -47,27 +64,48 @@ class ItemDetailsWidget(QtGui.QWidget):
 
         # make the view
         widget = QtGui.QWidget()
+
+        widget.setContentsMargins(0, 0, 0, 0)
         layout = QtGui.QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
         widget.setLayout(layout)
         button = QtGui.QPushButton(name)
+        self._buttons[name] = button
         layout.addWidget(button)
         self._items[name] = widget
         self.stack.addWidget(self._items[name])
 
         self._models[name] = MultiModel(parent=self.parent)
 
+        self._proxy_models[name] = SortFilterModel(excludes=[None], parent=self.parent)
+        self._proxy_models[name].setSourceModel(self._models[name])
+        self._proxy_models[name].setDynamicSortFilter(True)
         tree_view = QtGui.QTreeView()
-        tree_view.setModel(self._models[name])
+        tree_view.setModel(self._proxy_models[name])
         layout.addWidget(tree_view)
 
-        self.show_details_pane(name)
+        # self.show_details_pane(name)
 
     def show_details_pane(self, name):
+
         if self._items.get(name):
+            self._current_item = name
+            self.refresh()
+            items = self._models[self._current_item].rootItem.childCount()
+            self._buttons[self._current_item].setText(
+                "{} {}".format(self._current_item, str(items))
+            )
             self.stack.setCurrentWidget(self._items[name])
+
+    def refresh(self):
+        if self._current_item:
+            if self._models.get(self._current_item):
+
+                self._models[self._current_item].refresh()
 
     def add_item_details(self, name, data):
         if not name in self._items:
+            self._current_item = name
             self.add_details_pane(name, data)
         self._models[name].add_details(data)
         self._models[name].refresh()
@@ -96,7 +134,7 @@ class Ui_Dialog(Ui_Generic):
     def make_components(self):
 
         # the utility that routes the data into a table/view
-        self.model = MultiModel(parent=self)
+        self.model = MultiModel(parent=self, header_schema="asset_title")
         self.proxy_model = SortFilterModel(excludes=[None], parent=self)
         self.proxy_model.setSourceModel(self.model)
         self.proxy_model.setDynamicSortFilter(True)
@@ -132,7 +170,9 @@ class Ui_Dialog(Ui_Generic):
         self._force_sync = QtGui.QCheckBox()  # create the force sync toggle
         self._force_sync.setText("Force Sync")
         self._rescan = QtGui.QPushButton("Rescan")
-        self.tree_view = QtGui.QTreeView()
+        self.tree_view = QtGui.QTableView()
+
+        self.tree_view.setItemDelegateForColumn(1, ProgressDelegate(self.tree_view))
 
         self._perforce_log_viewstate = QtGui.QCheckBox()
         self._perforce_log_viewstate.setText("Show perforce log")
@@ -149,8 +189,8 @@ class Ui_Dialog(Ui_Generic):
         self.model.i_should_update = True
         self.model.refresh()
         self.tree_view.update()
-        self.tree_view.expandAll()
-        self.tree_view.setAnimated(True)
+        # self.tree_view.expandAll()
+        # self.tree_view.setAnimated(True)
         self.show_tree()
         # record time of update into self.last_updated
 
@@ -188,7 +228,7 @@ class Ui_Dialog(Ui_Generic):
         self.log_window.setVisible(False)  # hide until requested to show
 
         self.tree_view.setModel(self.proxy_model)
-        self.tree_view.setAnimated(True)
+        # self.tree_view.setAnimated(True)
 
         self.view_stack.addWidget(self.items_widget)
         self.view_stack.addWidget(self.b)
@@ -262,7 +302,7 @@ class Ui_Dialog(Ui_Generic):
 
     def rescan(self):
 
-        self.model = MultiModel(parent=self)
+        self.model = MultiModel(parent=self, header_schema="asset_title")
         self.proxy_model.setSourceModel(self.model)
         self.log_window.clear()
         self.model.refresh()
@@ -546,6 +586,8 @@ class Ui_Dialog(Ui_Generic):
         logging.debug("Refreshing UI based on changes")
         # if self.interactive:
         self.model.refresh()
+
+        self.item_details_widget.refresh()
 
     def show_tree(self):
         self.view_stack.setCurrentWidget(self.items_widget)
