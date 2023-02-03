@@ -64,6 +64,9 @@ class Row:
     def visible_children(self):
         return len([i for i in self.childItems if i.should_be_visible])
 
+    def syncd_children(self):
+        return len([i for i in self.childItems if hasattr(i, "syncd")])
+
     def appendChild(self, item):
         self.childItems.append(item)
 
