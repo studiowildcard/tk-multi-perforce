@@ -11,7 +11,7 @@ from ..utils.local_workspace import open_browser
 from .base_ui import Ui_Generic
 from ..models.multi_model import MultiModel
 from ..models.model_filter import SortFilterModel
-
+from ..utils.inspection import method_decorator, trace
 from .delegates import ProgressDelegate
 
 logger = sgtk.platform.get_logger(__name__)
@@ -100,6 +100,7 @@ class SelectionItem(QtGui.QListWidgetItem):
         self.progress.setMaximumHeight(5)
         self.progress.setRange(0, 100)
         self.progress.setFormat("")
+        self.progress.setVisible(False)
 
         self.main_layout.addWidget(self.progress)
 
@@ -107,10 +108,9 @@ class SelectionItem(QtGui.QListWidgetItem):
         # self.set_counter(0)
 
         self.setSizeHint(self._widget.sizeHint())
-        self.set_progress(50)
 
     def set_progress(self, value):
-        if value > 0:
+        if 100 > value > 0:
             self.progress.setValue(value)
             self.progress.setVisible(True)
         else:
@@ -164,7 +164,10 @@ class ItemSelector(QtGui.QWidget):
     def update_item_summary(self, data):
         model_name = data.get("name")
         left_to_sync = data.get("items") - data.get("in_sync")
+        if data.get("items"):
+            progress = (float(data.get("in_sync")) / float(data.get("items"))) * 100
         self._widgets[model_name].set_counter(left_to_sync)
+        self._widgets[model_name].set_progress(int(progress))
 
     def set_color(self, *colors):
 
@@ -196,6 +199,38 @@ class ItemSelector(QtGui.QWidget):
         self.item_selected.emit(self._items[name])
 
 
+class ItemDetailsPane(QtGui.QWidget):
+    def __init__(self, name, parent=None, logger=None):
+        """
+        Construction of generic base ui, containing
+        common utilities and methods for Ui state and management
+
+        Super-ing this class at the end of your inherited class allows you to specify the
+        widgets and layout as you wish first, and this base class will build it for you
+        """
+        super(ItemDetailsPane, self).__init__(parent)
+        self.parent = parent
+        self.setContentsMargins(0, 0, 0, 0)
+        self.main_layout = QtGui.QVBoxLayout()
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(self.main_layout)
+
+        self.text = QtGui.QLabel(name)
+
+        # layout.addWidget(button)
+
+        self.model = MultiModel(parent=self.parent.parent)
+        self.proxy_model = SortFilterModel(excludes=[None], parent=self.parent.parent)
+
+        self.proxy_model.setSourceModel(self.model)
+        self.proxy_model.setDynamicSortFilter(True)
+
+        self.tree_view = QtGui.QTreeView()
+        self.tree_view.setModel(self.proxy_model)
+        self.main_layout.addWidget(self.text)
+        self.main_layout.addWidget(self.tree_view)
+
+
 class ItemDetailsWidget(QtGui.QWidget):
     model_summary = QtCore.Signal(dict)
 
@@ -221,6 +256,8 @@ class ItemDetailsWidget(QtGui.QWidget):
         self._items = {}
         self._buttons = {}
 
+        self._details = {}
+
         self.stack = QtGui.QStackedWidget()
 
         self.main_layout = QtGui.QVBoxLayout()
@@ -233,64 +270,44 @@ class ItemDetailsWidget(QtGui.QWidget):
 
         # make the view
         widget = QtGui.QWidget()
+        self._details[name] = ItemDetailsPane(name, parent=self)
 
-        widget.setContentsMargins(0, 0, 0, 0)
-        layout = QtGui.QVBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        widget.setLayout(layout)
-        button = QtGui.QPushButton(name)
-        self._buttons[name] = button
-        layout.addWidget(button)
-        self._items[name] = widget
-        self.stack.addWidget(self._items[name])
-
-        self._models[name] = MultiModel(parent=self.parent)
-
-        self._proxy_models[name] = SortFilterModel(excludes=[None], parent=self.parent)
-        self._proxy_models[name].setSourceModel(self._models[name])
-        self._proxy_models[name].setDynamicSortFilter(True)
-        tree_view = QtGui.QTreeView()
-        tree_view.setModel(self._proxy_models[name])
-        layout.addWidget(tree_view)
+        self.stack.addWidget(self._details[name])
 
         # self.show_details_pane(name)
 
     def show_details_pane(self, name):
 
-        if self._items.get(name):
+        if self._details.get(name):
             self._current_item = name
             self.refresh()
-            # items = self._models[self._current_item].rootItem.childCount()
-            # self._buttons[self._current_item].setText(
-            #     "{} {}".format(self._current_item, str(items))
-            # )
-            self.stack.setCurrentWidget(self._items[name])
+            self.stack.setCurrentWidget(self._details[name])
 
     def summarize_model(self, key):
         doc = {
-            "items": self._models[key].rootItem.visible_children(),
+            "items": self._details[key].model.rootItem.visible_children(),
             "name": key,
-            "in_sync": self._models[key].rootItem.syncd_children(),
+            "in_sync": self._details[key].model.rootItem.syncd_children(),
         }
         self.model_summary.emit(doc)
 
     def refresh(self):
         if self._current_item:
-            if self._models.get(self._current_item):
+            if self._details.get(self._current_item):
                 self.summarize_model(self._current_item)
-                self._models[self._current_item].refresh()
+                self._details[self._current_item].model.refresh()
 
     def add_item_details(self, name, data):
-        if not name in self._items:
+        if not name in self._details:
             self._current_item = name
             self.add_details_pane(name, data)
-        self._models[name].add_details(data)
+        self._details[name].model.add_details(data)
 
-        self._models[name].refresh()
+        self._details[name].model.refresh()
         self.summarize_model(name)
 
 
-# @method_decorator(trace)
+@method_decorator(trace)
 class Ui_Dialog(Ui_Generic):
     """
     Description:
@@ -794,6 +811,7 @@ class Ui_Dialog(Ui_Generic):
         # pointer_to_source_item = self.proxy_model.mapToSource(index).internalPointer()
 
         # name = pointer_to_source_item.data(0)
+        self.logger.info(str(test))
         self.item_details_widget.show_details_pane(test.get("asset_name"))
 
 
