@@ -15,6 +15,125 @@ from ..models.model_filter import SortFilterModel
 from .delegates import ProgressDelegate
 
 logger = sgtk.platform.get_logger(__name__)
+COLORS = {
+    "red": (165, 66, 61),
+    "orange": (194, 115, 59),
+    "yellow": (226, 184, 67),
+    "olive": (192, 201, 81),
+    "green": (87, 178, 98),
+    "teal": (75, 206, 192),
+    "blue": (78, 131, 168),
+    "violet": (99, 72, 143),
+    "purple": (136, 75, 147),
+    "pink": (161, 65, 112),
+}
+
+
+class Badge(QtGui.QLabel):
+    def __init__(
+        self,
+        text=None,
+        color="red",
+        opacity=50,
+        padding=1,
+        font_size=10,
+        *args,
+        **kwargs,
+    ):
+        super(Badge, self).__init__(*args, **kwargs)
+        self.font_size = font_size
+        self.setText(text.upper())
+        self.set_color(color, opacity=opacity)
+
+    def set_color(self, color=None, opacity=50):
+        self.setStyleSheet(
+            f"""QLabel {{
+                           background-color:rgba({COLORS[color][0]},{COLORS[color][1]},{COLORS[color][2]},{opacity});
+                           color:{255, 255, 255};
+                           border-radius:5px;
+                           font-size:{self.font_size}px;
+                           padding-left:{self.font_size * 0.35}px;
+                           padding-right:{self.font_size * 0.35}px;
+                           padding-top:{self.font_size * 0.35}px;
+                           padding-bottom:{self.font_size * 0.35}px;
+                           }}
+                           QToolTip {{opacity: 180;
+                                font-size:11px;
+                                padding: 5px;
+                                border-radius: 5px;
+                                background-color: rgb(40, 40, 40);
+                                color: rgb(250,250,250);
+                           }}"""
+        )
+
+
+class SelectionItem(QtGui.QListWidgetItem):
+    def __init__(self, name, parent=None, logger=None):
+        """
+        Construction of generic base ui, containing
+        common utilities and methods for Ui state and management
+
+        Super-ing this class at the end of your inherited class allows you to specify the
+        widgets and layout as you wish first, and this base class will build it for you
+        """
+        super(SelectionItem, self).__init__(parent)
+
+        self._widget = QtGui.QWidget()
+        self.main_layout = QtGui.QVBoxLayout()
+        self.info_layout = QtGui.QHBoxLayout()
+        self.main_layout.addLayout(self.info_layout)
+        self._widget.setLayout(self.main_layout)
+
+        self._counter = 0
+
+        title_label = QtGui.QLabel(name)
+        title_label.setStyleSheet(f"font-size: 16px;")
+
+        self.badge_count = Badge("0")
+        self.badge_status = Badge("syncing...", font_size=10, color="green")
+        self.info_layout.addWidget(title_label)
+        self.info_layout.addWidget(self.badge_count)
+        self.info_layout.addWidget(self.badge_status)
+        self.info_layout.addStretch(1)
+
+        self.progress = QtGui.QProgressBar()
+        self.progress.setMaximumHeight(5)
+        self.progress.setRange(0, 100)
+        self.progress.setFormat("")
+
+        self.main_layout.addWidget(self.progress)
+
+        self.set_status("init")
+        # self.set_counter(0)
+
+        self.setSizeHint(self._widget.sizeHint())
+        self.set_progress(50)
+
+    def set_progress(self, value):
+        if value > 0:
+            self.progress.setValue(value)
+            self.progress.setVisible(True)
+        else:
+            self.progress.setVisible(False)
+
+    def set_status(self, status):
+        meta = {"In Sync": "green", "Syncing...": "blue"}
+        if status in meta:
+            self.badge_status.setVisible(True)
+            self.badge_status.set_color(meta[status])
+            self.badge_status.setText(status)
+        else:
+            self.badge_status.setVisible(False)
+
+    def set_counter(self, count):
+        self._counter = count
+
+        if self._counter > 0:
+            self.badge_count.setText(str(count))
+            self.badge_count.setVisible(True)
+        else:
+            self.badge_count.setVisible(False)
+            self.set_status("In Sync")
 
 
 class ItemSelector(QtGui.QWidget):
@@ -31,6 +150,7 @@ class ItemSelector(QtGui.QWidget):
         super(ItemSelector, self).__init__(parent)
         self.logger = logger
         self._items = {}
+        self._widgets = {}
         self._index = []
         self.main_layout = QtGui.QVBoxLayout()
         self.main_layout.setContentsMargins(0, 0, 0, 0)
@@ -41,11 +161,35 @@ class ItemSelector(QtGui.QWidget):
 
         self.list_widget.currentRowChanged.connect(self.item_clicked)
 
+    def update_item_summary(self, data):
+        model_name = data.get("name")
+        left_to_sync = data.get("items") - data.get("in_sync")
+        self._widgets[model_name].set_counter(left_to_sync)
+
+    def set_color(self, *colors):
+
+        r = sum([COLORS[c][0] for c in colors]) / len(colors)
+        g = sum([COLORS[c][1] for c in colors]) / len(colors)
+        b = sum([COLORS[c][2] for c in colors]) / len(colors)
+        self.color_bar.setStyleSheet(
+            "background-color:rgb(%d, %d, %d);border-radius:3px" % (r, g, b)
+        )
+
     def add_item(self, key, data):
-        if key not in self._items:
-            self._items[key] = data
-            self._index.append(key)
-            self.list_widget.addItem(key)
+        try:
+            if key not in self._items:
+                self._items[key] = data
+                self._index.append(key)
+
+                item = SelectionItem(key)
+                self._widgets[key] = item
+                self.list_widget.addItem(item)
+                self.list_widget.setItemWidget(item, item._widget)
+
+        except Exception as e:
+            import traceback
+
+            self.logger.error(traceback.format_exc())
 
     def item_clicked(self, index):
         name = self._index[index]
@@ -53,6 +197,8 @@ class ItemSelector(QtGui.QWidget):
 
 
 class ItemDetailsWidget(QtGui.QWidget):
+    model_summary = QtCore.Signal(dict)
+
     def __init__(self, parent, logger=None):
         """
         Construction of generic base ui, containing
@@ -114,16 +260,24 @@ class ItemDetailsWidget(QtGui.QWidget):
         if self._items.get(name):
             self._current_item = name
             self.refresh()
-            items = self._models[self._current_item].rootItem.childCount()
-            self._buttons[self._current_item].setText(
-                "{} {}".format(self._current_item, str(items))
-            )
+            # items = self._models[self._current_item].rootItem.childCount()
+            # self._buttons[self._current_item].setText(
+            #     "{} {}".format(self._current_item, str(items))
+            # )
             self.stack.setCurrentWidget(self._items[name])
+
+    def summarize_model(self, key):
+        doc = {
+            "items": self._models[key].rootItem.visible_children(),
+            "name": key,
+            "in_sync": self._models[key].rootItem.syncd_children(),
+        }
+        self.model_summary.emit(doc)
 
     def refresh(self):
         if self._current_item:
             if self._models.get(self._current_item):
-
+                self.summarize_model(self._current_item)
                 self._models[self._current_item].refresh()
 
     def add_item_details(self, name, data):
@@ -131,7 +285,9 @@ class ItemDetailsWidget(QtGui.QWidget):
             self._current_item = name
             self.add_details_pane(name, data)
         self._models[name].add_details(data)
+
         self._models[name].refresh()
+        self.summarize_model(name)
 
 
 # @method_decorator(trace)
@@ -234,18 +390,24 @@ class Ui_Dialog(Ui_Generic):
         self._menu_layout = QtGui.QHBoxLayout()
 
         self.items_widget = QtGui.QWidget()
-        self.items_layout = QtGui.QHBoxLayout()
+        self.items_splitter = QtGui.QSplitter()
 
         self.items_list = ItemSelector(self, self.logger)
         self.items_list.item_selected.connect(self.item_context_changed)
-        self.items_layout.addWidget(self.items_list)
+        self.items_splitter.addWidget(self.items_list)
         self.t2 = QtGui.QTreeView()
         self.t3 = QtGui.QTreeView()
 
         self.item_details_widget = ItemDetailsWidget(self)
-        self.items_layout.addWidget(self.item_details_widget)
+        # connect our model to our list widghet to feed it info
+        self.item_details_widget.model_summary.connect(
+            self.items_list.update_item_summary
+        )
+        self.items_splitter.addWidget(self.item_details_widget)
 
-        self.items_widget.setLayout(self.items_layout)
+        self.items_splitter.setStretchFactor(1, 4)
+
+        # self.items_widget.setLayout(self.items_layout)
 
         self.setLayout(self._main_layout)
 
@@ -255,7 +417,7 @@ class Ui_Dialog(Ui_Generic):
         self.tree_view.setModel(self.proxy_model)
         # self.tree_view.setAnimated(True)
 
-        self.view_stack.addWidget(self.items_widget)
+        self.view_stack.addWidget(self.items_splitter)
         self.view_stack.addWidget(self.b)
         self.view_stack.setCurrentWidget(self.b)
 
@@ -615,7 +777,7 @@ class Ui_Dialog(Ui_Generic):
         self.item_details_widget.refresh()
 
     def show_tree(self):
-        self.view_stack.setCurrentWidget(self.items_widget)
+        self.view_stack.setCurrentWidget(self.items_splitter)
 
     def show_waiting(self):
         self.view_stack.setCurrentWidget(self.b)
