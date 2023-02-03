@@ -12,7 +12,7 @@ logger = sgtk.platform.get_logger(__name__)
 
 # @method_decorator(trace)
 class MultiModel(QtCore.QAbstractItemModel):
-    def __init__(self, data=None, parent=None):
+    def __init__(self, data=None, parent=None, header_schema=None):
         super(MultiModel, self).__init__(parent=parent)
 
         self.main_ui = parent
@@ -23,8 +23,12 @@ class MultiModel(QtCore.QAbstractItemModel):
         self.resolver = SyncResolver()
 
         self.icon_manager = IconManager(icon_finder=self.main_ui.icon_path)
+        if not header_schema:
+            header_schema = self.schemas.asset_item
+        if isinstance(header_schema, str):
+            header_schema = self.schemas[header_schema]
         self.rootItem = Row(
-            data={}, parent=None, schema=self.schemas.asset_item, resolver=self.resolver
+            data={}, parent=None, schema=header_schema, resolver=self.resolver
         )
         # self.rootItem will specify your headlines
         # TODO: pass your tree item in
@@ -140,10 +144,10 @@ class MultiModel(QtCore.QAbstractItemModel):
         return self.createIndex(parentItem.row(), 0, parentItem)
 
     def rowCount(self, parent=None):
-        # if not parent:
-        #     parent = self.rootItem
-        if parent.column() > 0:
-            return 0
+        if not parent:
+            parent = self.rootItem
+        # if parent.column() > 0:
+        #     return 0
 
         if not parent.isValid():
             parentItem = self.rootItem
