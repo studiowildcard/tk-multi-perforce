@@ -53,12 +53,12 @@ class SyncWorker(QtCore.QRunnable):
     path_to_sync = None
     item = None
 
-    def __init__(self, fw, paths_to_sync):
+    def __init__(self, fw, paths_to_sync, asset_name):
         """
         Handles syncing specific file from perforce depot to local workspace on disk
         """
         super(SyncWorker, self).__init__()
-        self.asset_name = None
+        self.asset_name = asset_name
         self.signaller = SyncSignaller()
         self.fw = fw
         self.p4 = self.fw.connection.connect(progress=True)
@@ -95,7 +95,7 @@ class SyncWorker(QtCore.QRunnable):
                         "model_item": path_info["id"],
                         "path": path_info["path"],
                         "info": p4_response,
-                        "asset_name": path_info["id"],
+                        "asset_name": path_info["asset_name"],
                     }
                 )
 
