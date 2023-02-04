@@ -107,6 +107,10 @@ class SelectionItem(QtGui.QListWidgetItem):
         self.set_status("init")
         # self.set_counter(0)
 
+        sp_retain = self.progress.sizePolicy()
+        sp_retain.setRetainSizeWhenHidden(True)
+        self.progress.setSizePolicy(sp_retain)
+
         self.setSizeHint(self._widget.sizeHint())
 
     def set_progress(self, value):
@@ -131,6 +135,7 @@ class SelectionItem(QtGui.QListWidgetItem):
         if self._counter > 0:
             self.badge_count.setText(str(count))
             self.badge_count.setVisible(True)
+            self.set_status("none")
         else:
             self.badge_count.setVisible(False)
             self.set_status("In Sync")
@@ -159,7 +164,7 @@ class ItemSelector(QtGui.QWidget):
         self.list_widget = QtGui.QListWidget()
         self.main_layout.addWidget(self.list_widget)
 
-        self.list_widget.currentRowChanged.connect(self.item_clicked)
+        self.list_widget.itemClicked.connect(self.item_clicked)
 
     def update_item_summary(self, data):
         model_name = data.get("name")
@@ -194,7 +199,8 @@ class ItemSelector(QtGui.QWidget):
 
             self.logger.error(traceback.format_exc())
 
-    def item_clicked(self, index):
+    def item_clicked(self, item):
+        index = self.list_widget.indexFromItem(item).row()
         name = self._index[index]
         self.item_selected.emit(self._items[name])
 
@@ -227,10 +233,12 @@ class ItemDetailsPane(QtGui.QWidget):
 
         self.tree_view = QtGui.QTreeView()
         self.tree_view.setModel(self.proxy_model)
-        self.main_layout.addWidget(self.text)
+        # self.main_layout.addWidget(self.text)
         self.main_layout.addWidget(self.tree_view)
 
 
+#
+# @method_decorator(trace)
 class ItemDetailsWidget(QtGui.QWidget):
     model_summary = QtCore.Signal(dict)
 
@@ -265,6 +273,16 @@ class ItemDetailsWidget(QtGui.QWidget):
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.main_layout)
 
+        self.summary_widget = QtGui.QWidget()
+        self.summary_layout = QtGui.QVBoxLayout()
+        self.summary_text = QtGui.QLabel("")
+        self.summary_text.setAlignment(QtCore.Qt.AlignCenter)
+        # self.summary_layout.add
+        self.summary_layout.addWidget(self.summary_text)
+
+        self.summary_widget.setLayout(self.summary_layout)
+        self.stack.addWidget(self.summary_widget)
+
     def add_details_pane(self, name, data):
         # adds details pane for
 
@@ -280,22 +298,35 @@ class ItemDetailsWidget(QtGui.QWidget):
 
         if self._details.get(name):
             self._current_item = name
-            self.refresh()
+            self.refresh(name)
             self.stack.setCurrentWidget(self._details[name])
 
-    def summarize_model(self, key):
+    def refresh_all(self):
+        total = 0
+        for i in list(self._details.keys()):
+            summary = self.refresh(i)
+            total += summary.get("items")
+        self.summary_text.setText(f"{total} files found in total")
+
+    def summarize_model(self, key=None):
         doc = {
             "items": self._details[key].model.rootItem.visible_children(),
             "name": key,
             "in_sync": self._details[key].model.rootItem.syncd_children(),
         }
         self.model_summary.emit(doc)
+        return doc
 
-    def refresh(self):
-        if self._current_item:
-            if self._details.get(self._current_item):
-                self.summarize_model(self._current_item)
-                self._details[self._current_item].model.refresh()
+    def refresh(self, key=None):
+
+        if not key:
+            key = self._current_item
+        if key:
+            if self._details.get(key):
+
+                self._details[key].model.refresh()
+                summary = self.summarize_model(key)
+                return summary
 
     def add_item_details(self, name, data):
         if not name in self._details:
@@ -789,9 +820,8 @@ class Ui_Dialog(Ui_Generic):
         """
         logging.debug("Refreshing UI based on changes")
         # if self.interactive:
-        self.model.refresh()
-
-        self.item_details_widget.refresh()
+        # self.model.refresh()
+        self.item_details_widget.refresh_all()  # refresh and emit changes so the selector fields can summarize the changes
 
     def show_tree(self):
         self.view_stack.setCurrentWidget(self.items_splitter)
@@ -799,7 +829,7 @@ class Ui_Dialog(Ui_Generic):
     def show_waiting(self):
         self.view_stack.setCurrentWidget(self.b)
 
-    def item_context_changed(self, test=None):
+    def item_context_changed(self, item_context=None):
         """
         Resolves the model item row when clicked.
 
@@ -811,8 +841,8 @@ class Ui_Dialog(Ui_Generic):
         # pointer_to_source_item = self.proxy_model.mapToSource(index).internalPointer()
 
         # name = pointer_to_source_item.data(0)
-        self.logger.info(str(test))
-        self.item_details_widget.show_details_pane(test.get("asset_name"))
+
+        self.item_details_widget.show_details_pane(item_context.get("asset_name"))
 
 
 class listWidget(QtGui.QListWidget):
