@@ -23,7 +23,7 @@ from .workers.timed_events import TimeLord
 log = sgtk.platform.get_logger(__name__)
 
 
-@method_decorator(trace)
+# @method_decorator(trace)
 class SyncApp:
 
     _fw = None
@@ -164,7 +164,8 @@ class SyncApp:
 
     def item_completed(self, data):
 
-        self.logger.debug("")
+        # self.logger.debug("")
+
         self.ui.model.add_row(data)
         # self.ui.model.refresh()
         # self.ui.reload_view()
@@ -188,6 +189,7 @@ class SyncApp:
         Args:
             completion_dict (dict)
         """
+
         self.ui.show_tree()
         self._cur_progress += 1
         self.logger.info("Progress: {}/{}".format(self._cur_progress, self._total))
@@ -196,7 +198,10 @@ class SyncApp:
         self.logger.info("Finished gathering data from perforce.")
 
         if self._cur_progress == self._total:
-            self.ui.model.refresh()
+
+            # self.ui.model.refresh()
+
+            self.ui.item_details_widget.refresh_all()
             self.ui.interactive = True
 
     def initialize_data(self):
@@ -259,7 +264,7 @@ class SyncApp:
         else:
             item.syncd = True
 
-        self.ui.item_details_widget.summarize_model(status_dict.get("asset_name"))
+        self.ui.item_details_widget.refresh(status_dict.get("asset_name"))
 
     def start_sync(self):
         """
@@ -315,7 +320,7 @@ class SyncApp:
 
         for batch in worker_path_batches:
             self.logger.info("Adding batch of paths to the sync worker to sync.")
-            sync_worker = SyncWorker(self.fw, batch)
+            sync_worker = SyncWorker(self.fw, batch, batch[0].get("asset_name"))
             sync_worker.started.connect(self.item_starting_sync)
             sync_worker.completed.connect(self.item_completed_sync)
 
