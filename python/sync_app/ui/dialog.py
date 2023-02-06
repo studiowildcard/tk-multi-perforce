@@ -597,8 +597,13 @@ class Ui_Dialog(Ui_Generic):
                       'task.Task.sg_status_list', 'task_uniqueness', 'type', 'version',
                       'version.Version.sg_status_list', 'version_number', "task.Task.step.Step.code"]
             sg_data_dict = self._sg.find_one('PublishedFile', filters, fields)
-        # logger.info("key: {}".format(key))
-        # logger.info("sg_data_dict is: {}".format(sg_data_dict))
+        """
+        logger.info("key: {}".format(key))
+        logger.info("sg_data_dict is:")
+        if sg_data_dict:
+            for k, v in sg_data_dict.items():
+                logger.info("{}: {}".format(k, v))
+        """
 
         return sg_data_dict
 
@@ -673,6 +678,9 @@ class Ui_Dialog(Ui_Generic):
                 self.add_log(msg)
 
             else:
+                # this is a publish!
+                __set_publish_ui_visibility(True)
+
                 if "image" in sg_data_dict:
                     try:
                         image_url = sg_data_dict.get("image")
@@ -680,14 +688,11 @@ class Ui_Dialog(Ui_Generic):
                         urllib.request.urlretrieve(image_url, file_path)
                         self.details_image.setPixmap(QtGui.QPixmap(file_path))
                         # msg = "Saving temp image file: {}".format(file_path)
+                        # logger.info(msg)
                         # self.log_window.append(msg)
                     except:
                         logger.info("Unable to display thump pixmap")
                         pass
-
-
-                # this is a publish!
-                __set_publish_ui_visibility(True)
 
                 sg_item = sg_data_dict
 
@@ -751,7 +756,6 @@ class Ui_Dialog(Ui_Generic):
                         sg_item.get("entity").get("name"),
                     )
                     msg += __make_table_row("Link", entity_str)
-
                 # sort out the task label
                 if sg_item.get("task"):
 
@@ -771,25 +775,35 @@ class Ui_Dialog(Ui_Generic):
                     msg += __make_table_row(
                         "Task", "%s (%s)" % (task_name_str, task_status_str)
                     )
+                else:
+                    task_name_str = "N/A"
+                    msg += __make_table_row("Task", "%s" % task_name_str)
 
-                    # if there is a version associated, get the status for this
-                    if sg_item.get("version.Version.sg_status_list"):
-                        task_status_code = sg_item.get("version.Version.sg_status_list")
-                        task_status_str = self._status_model.get_long_name(task_status_code)
-                        msg += __make_table_row("Review", task_status_str)
 
+                # if there is a version associated, get the status for this
+                if sg_item.get("version.Version.sg_status_list"):
+                    task_status_code = sg_item.get("version.Version.sg_status_list")
+                    task_status_str = self._status_model.get_long_name(task_status_code)
+                else:
+                    task_status_str = "N/A"
+                msg += __make_table_row("Review", task_status_str)
+
+
+                if sg_item.get("task.Task.step.Step.code"):
                     step = sg_item.get("task.Task.step.Step.code")
                     step_str = "%s" % step if step is not None else "N/A"
+                else:
+                    step_str = "N/A"
+                msg += __make_table_row("Step", step_str)
 
-                    msg += __make_table_row("Step", "%s" % step_str)
+                self.details_header.setText("<table>%s</table>" % msg)
 
-                    self.details_header.setText("<table>%s</table>" % msg)
+                # tell details pane to load stuff
+                # self.log('****** sg_data')
+                # for k, v in sg_data_dict.items():
+                #    self.log('{}: {}'.format(k, v))
 
-                    # tell details pane to load stuff
-                    # self.log('****** sg_data')
-                    # for k, v in sg_data_dict.items():
-                    #    self.log('{}: {}'.format(k, v))
-                    self._publish_history_model.load_data(sg_data_dict)
+                self._publish_history_model.load_data(sg_data_dict)
 
             self.details_header.updateGeometry()
 
