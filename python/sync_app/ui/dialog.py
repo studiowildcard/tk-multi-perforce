@@ -289,6 +289,8 @@ class Ui_Dialog(Ui_Generic):
         self.details_header.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
         self.details_header.setWordWrap(True)
         self.details_header.setObjectName("details_header")
+        #self.details_header.setMinimumSize(QtCore.QSize(300, 150))
+        #self.details_header.setMaximumSize(QtCore.QSize(300, 150))
         self.horizontalLayout_5.addWidget(self.details_header)
         spacerItem4 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout_5.addItem(spacerItem4)
@@ -587,15 +589,16 @@ class Ui_Dialog(Ui_Generic):
         Get SG Publish Dict
         """
         sg_data_dict = {}
-        if key and id > 0:
-            filters = [['id', 'is', id]]
-
+        if key:
+            filters = [["sg_p4_depo_path", "in", [key]]]
             fields = ['code', 'created_at', 'created_by', 'created_by.HumanUser.image', 'description',
                       'entity', 'id', 'image', 'name', 'path', 'project', 'published_file_type',
                       'sg_status_list', 'task', 'task.Task.content', 'task.Task.due_date',
                       'task.Task.sg_status_list', 'task_uniqueness', 'type', 'version',
-                      'version.Version.sg_status_list', 'version_number']
+                      'version.Version.sg_status_list', 'version_number', "task.Task.step.Step.code"]
             sg_data_dict = self._sg.find_one('PublishedFile', filters, fields)
+        # logger.info("key: {}".format(key))
+        # logger.info("sg_data_dict is: {}".format(sg_data_dict))
 
         return sg_data_dict
 
@@ -649,72 +652,40 @@ class Ui_Dialog(Ui_Generic):
         if not key:
             #__clear_publish_history(self._no_selection_pixmap)
             __clear_publish_history(self._no_pubs_found_icon)
+            logger.info("Unable to item in SG data. Perhaps, item is not published")
 
-        if key and id == 0:
-            __clear_publish_history(self._no_pubs_found_icon)
-            logger.info("Unable to find {} in SG data. Perhaps, item is not published".format(key))
+            # an item which doesn't have any sg data directly associated
+            # typically an item higher up the tree
+            # just use the default text
+            """
+            if "name" in sg_data_dict:
+                folder_name = __make_table_row("Name", sg_data_dict.get("name"))
+                self.details_header.setText("<table>%s</table>" % folder_name)
+                __set_publish_ui_visibility(False)
+            """
 
-        if key and id > 0:
+        if key:
             sg_data_dict = self._get_sg_data_dict(key, id)
+            if not sg_data_dict:
+                __clear_publish_history(self._no_pubs_found_icon)
+                msg = "Unable to find item in SG data. Perhaps, item is not published"
+                logger.info(msg)
+                self.add_log(msg)
 
-            if "image" in sg_data_dict:
-                try:
-                    image_url = sg_data_dict["image"]
-                    file_path = "{}/tmp.png".format(self.dir_path)
-                    urllib.request.urlretrieve(image_url, file_path)
-                    self.details_image.setPixmap(QtGui.QPixmap(file_path))
-                    # msg = "Saving temp image file: {}".format(file_path)
-                    # self.log_window.append(msg)
-                except:
-                    logger.info("Unable to display thump pixmap")
-                    pass
-
-
-            if id == 0:
-                # an item which doesn't have any sg data directly associated
-                # typically an item higher up the tree
-                # just use the default text
-                if "name" in sg_data_dict:
-                    folder_name = __make_table_row("Name", sg_data_dict.get("name"))
-                    self.details_header.setText("<table>%s</table>" % folder_name)
-                    __set_publish_ui_visibility(False)
-
-                """
-                elif item.data(SgLatestPublishModel.IS_FOLDER_ROLE):
-                    # folder with sg data - basically a leaf node in the entity tree
-
-                    status_code = sg_data_dict.get("sg_status_list")
-                    if status_code is None:
-                        status_name = "No Status"
-                    else:
-                        status_name = self._status_model.get_long_name(status_code)
-
-                    status_color = self._status_model.get_color_str(status_code)
-                    if status_color:
-                        status_name = (
-                                "%s&nbsp;<span style='color: rgb(%s)'>&#9608;</span>"
-                                % (status_name, status_color)
-                        )
-
-                    if sg_data_dict.get("description"):
-                        desc_str = sg_data_dict.get("description")
-                    else:
-                        desc_str = "No description entered."
-
-                    msg = ""
-                    display_name = shotgun_globals.get_type_display_name(sg_data_dict["type"])
-                    msg += __make_table_row(
-                        "Name", "%s %s" % (display_name, sg_data_dict.get("code"))
-                    )
-                    msg += __make_table_row("Status", status_name)
-                    msg += __make_table_row("Description", desc_str)
-                    self.details_header.setText("<table>%s</table>" % msg)
-
-                    # blank out the version history
-                    __set_publish_ui_visibility(False)
-                    self._publish_history_model.clear()
-                """
             else:
+                if "image" in sg_data_dict:
+                    try:
+                        image_url = sg_data_dict.get("image")
+                        file_path = "{}/tmp.png".format(self.dir_path)
+                        urllib.request.urlretrieve(image_url, file_path)
+                        self.details_image.setPixmap(QtGui.QPixmap(file_path))
+                        # msg = "Saving temp image file: {}".format(file_path)
+                        # self.log_window.append(msg)
+                    except:
+                        logger.info("Unable to display thump pixmap")
+                        pass
+
+
                 # this is a publish!
                 __set_publish_ui_visibility(True)
 
@@ -801,19 +772,24 @@ class Ui_Dialog(Ui_Generic):
                         "Task", "%s (%s)" % (task_name_str, task_status_str)
                     )
 
-                # if there is a version associated, get the status for this
-                if sg_item.get("version.Version.sg_status_list"):
-                    task_status_code = sg_item.get("version.Version.sg_status_list")
-                    task_status_str = self._status_model.get_long_name(task_status_code)
-                    msg += __make_table_row("Review", task_status_str)
+                    # if there is a version associated, get the status for this
+                    if sg_item.get("version.Version.sg_status_list"):
+                        task_status_code = sg_item.get("version.Version.sg_status_list")
+                        task_status_str = self._status_model.get_long_name(task_status_code)
+                        msg += __make_table_row("Review", task_status_str)
 
-                self.details_header.setText("<table>%s</table>" % msg)
+                    step = sg_item.get("task.Task.step.Step.code")
+                    step_str = "%s" % step if step is not None else "N/A"
 
-                # tell details pane to load stuff
-                # self.log('****** sg_data')
-                # for k, v in sg_data_dict.items():
-                #    self.log('{}: {}'.format(k, v))
-                self._publish_history_model.load_data(sg_data_dict)
+                    msg += __make_table_row("Step", "%s" % step_str)
+
+                    self.details_header.setText("<table>%s</table>" % msg)
+
+                    # tell details pane to load stuff
+                    # self.log('****** sg_data')
+                    # for k, v in sg_data_dict.items():
+                    #    self.log('{}: {}'.format(k, v))
+                    self._publish_history_model.load_data(sg_data_dict)
 
             self.details_header.updateGeometry()
 
@@ -831,24 +807,30 @@ class Ui_Dialog(Ui_Generic):
         # get index of the column
         path_index = pointer_to_source_item.schema.key_index_map.get("item_found")
         # retrieve the path for that item on the given index
-        key = pointer_to_source_item.rowData[path_index]
-        logger.info(">>>>>> key: {}".format(key))
+        client_file = pointer_to_source_item.rowData[path_index]
 
-        if key in self._row_data:
-            id = self._row_data[key]
+        """
+        key = key[2:]
+        key.replace("/", "\\")
+        key = "/{}".format(key)
+        """
+
+        if client_file in self._row_data:
+            key = self._row_data[client_file]
+            logger.info(">>>>>> key: {}".format(client_file))
 
         if key:
             msg = "Displaying details of file: {}".format(key)
         else:
             msg = "Publish data is not available for this item"
         self.add_log(msg)
-
+        """
         if key:
             try:
                 key = os.path.basename(key)
             except:
                 logger.info("Unable to get file path")
-
+        """
         self._key = key
         self._id = id
         self._setup_details_panel(key, id)

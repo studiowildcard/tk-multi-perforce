@@ -59,3 +59,12 @@ class SyncResolver(BaseResolver):
         size = dict_value.get("fileSize")
         if size:
             return "{:.2f}".format(int(size) / 1024 / 1024)
+
+    def has_revision(self, dict_value):
+        change_val = dict_value.get("change", None)
+        change = "No"
+        if change_val:
+            change = "Yes"
+        return change
+
+

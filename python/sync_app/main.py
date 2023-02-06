@@ -189,8 +189,10 @@ class SyncApp:
         index += 1
         if "item_found" in item:
             key = item["item_found"].get("clientFile", None)
-            id = item.get("id", 0)
-            self.row_data[key] = id
+            val = item["item_found"].get("depotFile", None)
+            # self.logger.info("key : {}".format(key))
+            # self.logger.info("val : {}".format(val))
+            self.row_data[key] = val
             self.ui.get_row_data(self.parent_sgtk_app, self.row_data)
 
             msg = "({}/{}) Adding file: {}".format(index, self.entity_total, key)
@@ -354,6 +356,14 @@ class SyncApp:
         if isinstance(perforce_data, dict):
             depotfile = perforce_data.get("depotFile")
             change = perforce_data.get("change")
+
+            """
+            rev = perforce_data.get("rev")
+            if change:
+                self.logger.info(">>> depotfile: {}".format(depotfile))
+                self.logger.info(">>> Has revision: yes {}".format(change))
+                self.logger.info(">>> rev: {}".format(rev))
+            """
             message = "depotfile: {}  |  Change: {}".format(depotfile, change)
 
         elif isinstance(perforce_data, str):

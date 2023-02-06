@@ -30,6 +30,12 @@
             "transform": "revision",
         },
         {
+          "key": "item_found",
+          "title": "Has Revision",
+          "default": " ",
+          "transform": "has_revision",
+        },
+        {
             "key": "item_found",
             "title": "Size (MB)",
             "default": " ",
@@ -42,18 +48,5 @@
             "default": " ",
             "transform": "destination_path",
         },
-        {
-            "key": "type",
-            "title": "Type",
-            "default": "No Description",
-            "width": 100,
-            "filter": True
-        },
-        {
-            "key": "step",
-            "title": "Step",
-            "default": "No Description",
-            "width": 70,
-            "filter": True,
-        },
+
     ]

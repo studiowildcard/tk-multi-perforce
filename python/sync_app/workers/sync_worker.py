@@ -303,76 +303,22 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                     self.total_items_found.emit(
                         {"id": -1, "count": items_count}
                     )
-                    # make lookup list for SG api call for published files to correlate.
-                    depot_files = [i.get("depotFile") for i in self._items_to_sync]
-                    find_fields = [
-                        "sg_p4_change_number",
-                        "code",
-                        "entity.Asset.code",
-                        "sg_p4_depo_path",
-                        "task.Task.step.Step.code",
-                        "published_file_type.PublishedFileType.code",
-                        "id"
-                    ]
-
-                    # if we want to look for results PER depot file, we look against the list
-                    sg_filter = ["sg_p4_depo_path", "in", depot_files]
-
-                    # if the entity itself is a PublishedFile, use it's ID
-                    if self.entity.get("type") in ["PublishedFile"]:
-                        sg_filter = ["id", "in", self.entity.get("id")]
-                    logger.info("Getting published files")
-                    # get PublishedFile information needed, as configured above with fields and filters
-                    published_files = self.app.shotgun.find(
-                        "PublishedFile", [sg_filter], find_fields
-                    )
-                    logger.info("Done, getting published files")
-                    # make dictionary of items callable by key: sg_p4_depot_path
-                    published_file_by_depot_file = {
-                        i.get("sg_p4_depo_path"): i for i in published_files
-                    }
-                    logger.info("Done, getting published files by depot")
-                    # self.fw.log_info(published_file_by_depot_file)
 
                     for j, item in enumerate(self._items_to_sync):
-                        #logger.info("{}: Items count: {}".format(j, items_count))
                         if j % 50 == 0 or j == items_count-1:
                             self.total_items_found.emit(
                                 {"id": j, "count": items_count}
                             )
 
-                        published_file = published_file_by_depot_file.get(
-                            item.get("depotFile")
-                        )
-
                         for i in self.asset_map.keys():
-
-                            # self.log_error(i)
-                            # self.log_error(item.get("clientFile"))
                             if i in item.get("clientFile"):
                                 self.asset_item = self.asset_map[i]["asset"]
                                 self.entity = self.asset_map[i]["entity"]
 
-                        # step = None # grab step here
                         ext = None
                         step = None
                         file_type = None
                         id = 0
-
-                        if published_file:
-                            id = published_file.get('id')
-
-                            step = published_file.get("task.Task.step.Step.code")
-                            if step:
-                                self.includes.emit(("step", step))
-
-                            file_type = published_file.get(
-                                "published_file_type.PublishedFileType.code"
-                            )
-                            if file_type:
-                                self.includes.emit(("type", file_type))
-
-                            ext = None
 
                         if "." in item.get("clientFile"):
                             ext = os.path.basename(item.get("clientFile")).split(".")[
@@ -388,16 +334,14 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                                 "worker_id": self.id,
                                 "asset_name": self.asset_name,
                                 "item_found": item,
-                                "step": step,
-                                "type": file_type,
+                                #"step": step,
+                                #"type": file_type,
                                 "ext": ext.lower(),
                                 "status": status,
-                                "id": id,
-                                "index": j
+                                "index": j,
                             }
                         )
                 else:
-                    #self.total_items_found.emit({"id": self.id, "count": 1})
                     self.item_found_to_sync.emit(
                         {
                             "worker_id": self.id,
