@@ -143,6 +143,8 @@ class SyncApp:
 
         self.ui._do.clicked.connect(self.start_sync)
 
+        self.ui.interactive = True
+
         self.logger.info("App build completed with workers")
         # msg = "App build completed with workers"
         # self.ui.add_log(msg)
@@ -273,18 +275,21 @@ class SyncApp:
             # this adds to the threadpool and runs the `run` method on the QRunner.
             self.threadpool.start(asset_info_gather_worker)
 
+        self.ui.interactive = True
+
     def item_starting_sync(self, status_dict):
+        self.ui.interactive = False
         # make sure that the item knows its syncing,
         item = self.item_map.get(status_dict.get("model_item"))
         item.syncing = True
         # self.ui.model.refresh()
 
     def item_completed_sync(self, status_dict):
+
         item = self.item_map.get(status_dict.get("model_item"))
 
-        #self.progress_handler.iterate("sync_workers")
-        #self.ui.update_progress()
-        #self.ui.update_progress_bar(0)
+        self.progress_handler.iterate("sync_workers")
+        self.ui.update_progress()
 
         # self.logger.info(status_dict.get("path"))
         msg = "Syncing: {} ...".format(status_dict.get("path"))
@@ -297,6 +302,7 @@ class SyncApp:
         else:
             item.syncd = True
 
+        self.ui.interactive = True
         # self.ui.model.refresh()
 
     def start_sync(self):
@@ -309,6 +315,10 @@ class SyncApp:
 
         #msg = "Starting sync ..."
         #self.ui.add_log(msg)
+
+        if not self.ui.progress_handler:
+            self.ui.progress_handler = self.progress_handler
+
 
         # hold a map to our items while they process
         self.item_map = {}
@@ -324,7 +334,7 @@ class SyncApp:
                     self.item_map[sync_item.id] = sync_item
                     sync_worker.id = sync_item.id
 
-                    sync_worker.path_to_sync = sync_item.data(5)
+                    sync_worker.path_to_sync = sync_item.data(6)
                     sync_worker.asset_name = sync_item.parent().data(1).split(" ")[0]
 
                     sync_worker.fw = self.fw
@@ -342,6 +352,7 @@ class SyncApp:
         for worker in workers:
             self.threadpool.start(worker)
 
+        self.ui.interactive = True
         #msg = "Syncing is complete"
         #self.ui.add_log(msg)
 
@@ -357,13 +368,6 @@ class SyncApp:
             depotfile = perforce_data.get("depotFile")
             change = perforce_data.get("change")
 
-            """
-            rev = perforce_data.get("rev")
-            if change:
-                self.logger.info(">>> depotfile: {}".format(depotfile))
-                self.logger.info(">>> Has revision: yes {}".format(change))
-                self.logger.info(">>> rev: {}".format(rev))
-            """
             message = "depotfile: {}  |  Change: {}".format(depotfile, change)
 
         elif isinstance(perforce_data, str):

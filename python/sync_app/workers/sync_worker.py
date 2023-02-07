@@ -148,7 +148,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
 
         self.p4_log_received = self.signaller.p4_log_received  # raw p4 log
 
-        self.publish_file = False
+        self.have_rev_dict = {}
 
         self.spec_file = os.path.join(os.path.expanduser("~"), "p4spec.txt")
 
@@ -238,6 +238,14 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                 arguments.append("-f")
             sync_response = self.p4.run("sync", *arguments, self.root_path + "#head")
 
+            fstat_list = self.p4.run("fstat", self.root_path)
+            for fstat in fstat_list:
+                key = fstat.get('clientFile', None)
+                val = fstat.get('haveRev', "0")
+                if key:
+                    self.have_rev_dict[key] = val
+            # logger.info(">>>>>>>>>fstat_response: {}".format(fstat_response))
+
             # Keys in dictionary is: depotFile,clientFile,rev,action,fileSize
 
             if isinstance(sync_response, list):
@@ -316,15 +324,17 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                                 self.entity = self.asset_map[i]["entity"]
 
                         ext = None
-                        step = None
-                        file_type = None
-                        id = 0
 
                         if "." in item.get("clientFile"):
                             ext = os.path.basename(item.get("clientFile")).split(".")[
                                 -1
                             ]
                             self.includes.emit(("ext", ext.lower()))
+
+                        # Store haveRev data in item
+                        client_file = item.get("clientFile", None)
+                        if client_file:
+                            item["haveRev"] =  self.have_rev_dict.get(client_file, "0")
 
                         status = item.get("action")
                         if self.entity.get("type") in ["PublishedFile"]:
@@ -334,8 +344,6 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                                 "worker_id": self.id,
                                 "asset_name": self.asset_name,
                                 "item_found": item,
-                                #"step": step,
-                                #"type": file_type,
                                 "ext": ext.lower(),
                                 "status": status,
                                 "index": j,

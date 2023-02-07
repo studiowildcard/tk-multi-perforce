@@ -60,11 +60,8 @@ class SyncResolver(BaseResolver):
         if size:
             return "{:.2f}".format(int(size) / 1024 / 1024)
 
-    def has_revision(self, dict_value):
-        change_val = dict_value.get("change", None)
-        change = "No"
-        if change_val:
-            change = "Yes"
-        return change
+    def have_revision(self, dict_value):
+        have_rev = dict_value.get("haveRev", '0')
+        return have_rev
 
 

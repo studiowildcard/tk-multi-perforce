@@ -391,14 +391,13 @@ class Ui_Dialog(Ui_Generic):
         # emulate UI event of triggering filters
         self.filter_triggered()
 
-        # self.interactive = False
+        self.interactive = True
         self.show_waiting()
 
     def add_log(self, msg):
         self.log_window.append(msg)
         self.log_window.verticalScrollBar().setValue(self.log_window.verticalScrollBar().maximum())
-        # self.app.processEvents()
-        # self.log_window.reload()
+
 
     def init_details_panel(self):
 
@@ -469,12 +468,14 @@ class Ui_Dialog(Ui_Generic):
         self._default_details_panel()
 
     def rescan(self):
-
-        self.model = MultiModel(parent=self)
-        self.proxy_model.setSourceModel(self.model)
-        self.log_window.clear()
-        self.model.refresh()
-        self.app.initialize_data()
+        if self.interactive:
+            self.model = MultiModel(parent=self)
+            self.proxy_model.setSourceModel(self.model)
+            self.log_window.clear()
+            self.model.refresh()
+            self.app.initialize_data()
+        else:
+            logger.info("Interactivity is disabled temporarily ")
 
     def setup_events(self):
         pass
@@ -486,12 +487,14 @@ class Ui_Dialog(Ui_Generic):
         Description:
             Hides/unhides the perforce log in the sync app UI
         """
+        if self.interactive:
+            if not self.log_window.isVisible():
+                self.log_window.setVisible(True)
 
-        if not self.log_window.isVisible():
-            self.log_window.setVisible(True)
-
+            else:
+                self.log_window.setVisible(False)
         else:
-            self.log_window.setVisible(False)
+            logger.info("Interactivity is disabled temporarily ")
 
     def update_progress(self):
         if self.progress_handler:
@@ -550,10 +553,13 @@ class Ui_Dialog(Ui_Generic):
         """
         Executed when someone clicks the show/hide details button
         """
-        if self.container_widget.isVisible():
-            self._set_details_pane_visiblity(False)
+        if self.interactive:
+            if self.container_widget.isVisible():
+                self._set_details_pane_visiblity(False)
+            else:
+                self._set_details_pane_visiblity(True)
         else:
-            self._set_details_pane_visiblity(True)
+            logger.info("Interactivity is disabled temporarily ")
 
     def _set_details_pane_visiblity(self, visible):
         """
@@ -561,28 +567,31 @@ class Ui_Dialog(Ui_Generic):
         """
         # store our value in a setting
         # self._settings_manager.store("show_details", visible)
+        if self.interactive:
+            if visible == False:
+                # hide details pane
+                self._details_pane_visible = False
+                self.container_widget.setVisible(False)
+                self.info.setText("Show Details")
 
-        if visible == False:
-            # hide details pane
-            self._details_pane_visible = False
-            self.container_widget.setVisible(False)
-            self.info.setText("Show Details")
-
-        else:
-            # show details pane
-            self._details_pane_visible = True
-            self.container_widget.setVisible(True)
-            self.info.setText("Hide Details")
-
-            # if there is something selected, make sure the detail
-            # section is focused on this
-            if self._key:
-                self._setup_details_panel(self._key, self._id)
             else:
-                self._default_details_panel()
+                # show details pane
+                self._details_pane_visible = True
+                self.container_widget.setVisible(True)
+                self.info.setText("Hide Details")
 
-        # logger.info("key is: {}, id is {}".format(self._key, self._id))
-        self.log_window.verticalScrollBar().setValue(self.log_window.verticalScrollBar().maximum())
+                # if there is something selected, make sure the detail
+                # section is focused on this
+                if self._key:
+                    self._setup_details_panel(self._key, self._id)
+                else:
+                    self._default_details_panel()
+
+            # logger.info("key is: {}, id is {}".format(self._key, self._id))
+            self.log_window.verticalScrollBar().setValue(self.log_window.verticalScrollBar().maximum())
+        else:
+            logger.info("Interactivity is disabled temporarily ")
+
 
     def _get_sg_data_dict(self, key, id):
         """
@@ -596,7 +605,8 @@ class Ui_Dialog(Ui_Generic):
                       'sg_status_list', 'task', 'task.Task.content', 'task.Task.due_date',
                       'task.Task.sg_status_list', 'task_uniqueness', 'type', 'version',
                       'version.Version.sg_status_list', 'version_number', "task.Task.step.Step.code"]
-            sg_data_dict = self._sg.find_one('PublishedFile', filters, fields)
+            order = [{'field_name': 'version_number', 'direction': 'desc'}]
+            sg_data_dict = self._sg.find_one('PublishedFile', filters, fields, order)
         """
         logger.info("key: {}".format(key))
         logger.info("sg_data_dict is:")
@@ -742,8 +752,8 @@ class Ui_Dialog(Ui_Generic):
                 msg += __make_table_row("Name", name_str)
                 msg += __make_table_row("Type", type_str)
 
-                version = sg_item.get("version_number")
-                vers_str = "%03d" % version if version is not None else "N/A"
+                version_number = sg_item.get("version_number")
+                vers_str = "%03d" % version_number if version_number is not None else "N/A"
 
                 msg += __make_table_row("Version", "%s" % vers_str)
 
@@ -813,41 +823,39 @@ class Ui_Dialog(Ui_Generic):
         """
         key, id = None, 0
 
-        # map from the SortFilterProxy item to the original model pointer, get Row item from it
-        pointer_to_source_item = self.proxy_model.mapToSource(
-            index
-        ).internalPointer()
+        if self.interactive:
 
-        # get index of the column
-        path_index = pointer_to_source_item.schema.key_index_map.get("item_found")
-        # retrieve the path for that item on the given index
-        client_file = pointer_to_source_item.rowData[path_index]
+            # map from the SortFilterProxy item to the original model pointer, get Row item from it
+            pointer_to_source_item = self.proxy_model.mapToSource(
+                index
+            ).internalPointer()
 
-        """
-        key = key[2:]
-        key.replace("/", "\\")
-        key = "/{}".format(key)
-        """
+            # get index of the column
+            path_index = pointer_to_source_item.schema.key_index_map.get("item_found")
+            # retrieve the path for that item on the given index
+            client_file = pointer_to_source_item.rowData[path_index]
 
-        if client_file in self._row_data:
-            key = self._row_data[client_file]
-            logger.info(">>>>>> key: {}".format(client_file))
+            """
+            key = key[2:]
+            key.replace("/", "\\")
+            key = "/{}".format(key)
+            """
 
-        if key:
-            msg = "Displaying details of file: {}".format(key)
+            if client_file in self._row_data:
+                key = self._row_data[client_file]
+                logger.info(">>>>>> key: {}".format(client_file))
+
+            if key:
+                msg = "Displaying details of file: {}".format(key)
+            else:
+                msg = "Publish data is not available for this item"
+            self.add_log(msg)
+
+            self._key = key
+            self._id = id
+            self._setup_details_panel(key, id)
         else:
-            msg = "Publish data is not available for this item"
-        self.add_log(msg)
-        """
-        if key:
-            try:
-                key = os.path.basename(key)
-            except:
-                logger.info("Unable to get file path")
-        """
-        self._key = key
-        self._id = id
-        self._setup_details_panel(key, id)
+            logger.info("Interactivity is disabled temporarily ")
 
 
     def _on_history_selection(self, selected, deselected):
@@ -866,12 +874,15 @@ class Ui_Dialog(Ui_Generic):
         """
         # the code that sets up the version button also populates
         # a member variable which olds the current media center url.
-        msg = "Playing back selected history file ..."
-        self.add_log(msg)
-        if self._current_version_detail_playback_url:
-            QtGui.QDesktopServices.openUrl(
-                QtCore.QUrl(self._current_version_detail_playback_url)
-            )
+        if self.interactive:
+            msg = "Playing back selected history file ..."
+            self.add_log(msg)
+            if self._current_version_detail_playback_url:
+                QtGui.QDesktopServices.openUrl(
+                    QtCore.QUrl(self._current_version_detail_playback_url)
+                )
+        else:
+            logger.info("Interactivity is disabled temporarily ")
 
     def _on_history_double_clicked(self, model_index):
         """
@@ -880,68 +891,72 @@ class Ui_Dialog(Ui_Generic):
 
         :param model_index:    The model index of the item that was double clicked
         """
-        # the incoming model index is an index into our proxy model
-        # before continuing, translate it to an index into the
-        # underlying model
-        proxy_model = model_index.model()
-        source_index = proxy_model.mapToSource(model_index)
+        if self.interactive:
+            # the incoming model index is an index into our proxy model
+            # before continuing, translate it to an index into the
+            # underlying model
+            proxy_model = model_index.model()
+            source_index = proxy_model.mapToSource(model_index)
 
-        # now we have arrived at our model derived from StandardItemModel
-        # so let's retrieve the standarditem object associated with the index
-        item = source_index.model().itemFromIndex(source_index)
+            # now we have arrived at our model derived from StandardItemModel
+            # so let's retrieve the standarditem object associated with the index
+            item = source_index.model().itemFromIndex(source_index)
 
-        # Run default action.
-        sg_item = shotgun_model.get_sg_data(model_index)
-        default_action = self._action_manager.get_default_action_for_publish(
-            sg_item, self._action_manager.UI_AREA_HISTORY
-        )
-        if default_action:
-            default_action.trigger()
+            # Run default action.
+            sg_item = shotgun_model.get_sg_data(model_index)
+            default_action = self._action_manager.get_default_action_for_publish(
+                sg_item, self._action_manager.UI_AREA_HISTORY
+            )
+            if default_action:
+                default_action.trigger()
+        else:
+            logger.info("Interactivity is disabled temporarily ")
 
     def open_context_menu(self, point):
+        if self.interactive:
+            try:
+                os_filebrowser_map = {"win32": "Explorer", "darwin": "Finder"}
+                # get proper browser based on OS
+                os_filebrowser = "file browser"
+                if sys.platform in os_filebrowser_map.keys():
+                    os_filebrowser = os_filebrowser_map[sys.platform]
 
-        try:
+                # find the index of the SortFilterProxy item we selected
+                filtered_item_model_index = self.tree_view.indexAt(
+                    point
+                )  # This is the index that needs to be mapped
 
-            os_filebrowser_map = {"win32": "Explorer", "darwin": "Finder"}
-            # get proper browser based on OS
-            os_filebrowser = "file browser"
-            if sys.platform in os_filebrowser_map.keys():
-                os_filebrowser = os_filebrowser_map[sys.platform]
+                # map from the SortFilterProxy item to the original model pointer, get Row item from it
+                pointer_to_source_item = self.proxy_model.mapToSource(
+                    filtered_item_model_index
+                ).internalPointer()
 
-            # find the index of the SortFilterProxy item we selected
-            filtered_item_model_index = self.tree_view.indexAt(
-                point
-            )  # This is the index that needs to be mapped
+                # find index of chosen key to look up when right clicking
+                column_index = pointer_to_source_item.schema.key_index_map.get(
+                    "item_found"
+                )  # get index of the column
 
-            # map from the SortFilterProxy item to the original model pointer, get Row item from it
-            pointer_to_source_item = self.proxy_model.mapToSource(
-                filtered_item_model_index
-            ).internalPointer()
+                path_to_open = os.path.dirname(
+                    pointer_to_source_item.rowData[column_index]
+                )  # retrieve the path for that item on on the given index
 
-            # find index of chosen key to look up when right clicking
-            column_index = pointer_to_source_item.schema.key_index_map.get(
-                "item_found"
-            )  # get index of the column
+                menu = QtGui.QMenu()
+                action = menu.addAction(
+                    "Open path in {}".format(os_filebrowser),
+                    partial(open_browser, path_to_open),
+                )
 
-            path_to_open = os.path.dirname(
-                pointer_to_source_item.rowData[column_index]
-            )  # retrieve the path for that item on on the given index
+                menu.exec_(self.tree_view.mapToGlobal(point))
 
-            menu = QtGui.QMenu()
-            action = menu.addAction(
-                "Open path in {}".format(os_filebrowser),
-                partial(open_browser, path_to_open),
-            )
+                logger.debug(
+                    "Opened file browser via context menu for path: {}".format(path_to_open)
+                )
 
-            menu.exec_(self.tree_view.mapToGlobal(point))
+            except Exception as e:
 
-            logger.debug(
-                "Opened file browser via context menu for path: {}".format(path_to_open)
-            )
-
-        except Exception as e:
-
-            logger.error("Error occurred starting context menu: {}".format(e))
+                logger.error("Error occurred starting context menu: {}".format(e))
+        else:
+            logger.info("Interactivity is disabled temporarily ")
 
     def show_if_filter_is_enabled(self, filter_type="ext"):
 
@@ -1022,49 +1037,56 @@ class Ui_Dialog(Ui_Generic):
 
     def reset_all_filters(self):
 
-        for filter_type in self.list_of_filter_types:
-            if hasattr(self, "_{}_actions".format(filter_type)):
-                actions = getattr(self, "_{}_actions".format(filter_type))
-                if actions:
-                    for checkbox in actions.values():
+        if self.interactive:
+            for filter_type in self.list_of_filter_types:
+                if hasattr(self, "_{}_actions".format(filter_type)):
+                    actions = getattr(self, "_{}_actions".format(filter_type))
+                    if actions:
+                        for checkbox in actions.values():
 
-                        checkbox.setChecked(True)
-        self.filter_triggered()
+                            checkbox.setChecked(True)
+            self.filter_triggered()
+        else:
+            logger.info("Interactivity is disabled temporarily ")
 
     def filter_triggered(self):
         """
         Description:
             description here
         """
+        if self.interactive:
 
-        preference_data = self.utils.prefs.read()
+            preference_data = self.utils.prefs.read()
 
-        for filter_type in self.list_of_filter_types:
+            for filter_type in self.list_of_filter_types:
 
-            filter_type = filter_type.lower()
-            preference_filter_name = "{}_filters".format(filter_type)
-            filter_data = {}
+                filter_type = filter_type.lower()
+                preference_filter_name = "{}_filters".format(filter_type)
+                filter_data = {}
 
-            # use existing filter data if exists
-            if preference_data.get(preference_filter_name):
-                filter_data = preference_data.get(preference_filter_name)
+                # use existing filter data if exists
+                if preference_data.get(preference_filter_name):
+                    filter_data = preference_data.get(preference_filter_name)
 
-            # overwrite it with  our scan of presently checked items
-            if hasattr(self, "_{}_actions".format(filter_type)):
-                actions = getattr(self, "_{}_actions".format(filter_type))
-                if actions:
-                    for k, v in actions.items():
-                        filter_data[k] = v.isChecked()
+                # overwrite it with  our scan of presently checked items
+                if hasattr(self, "_{}_actions".format(filter_type)):
+                    actions = getattr(self, "_{}_actions".format(filter_type))
+                    if actions:
+                        for k, v in actions.items():
+                            filter_data[k] = v.isChecked()
 
-            preference_data[preference_filter_name] = filter_data
+                preference_data[preference_filter_name] = filter_data
 
-            # update user preference data on disk
-            self.utils.prefs.write(preference_data)
+                # update user preference data on disk
+                self.utils.prefs.write(preference_data)
 
-            # show the filter enabled icon in the ui
-            self.show_if_filter_is_enabled(filter_type)
+                # show the filter enabled icon in the ui
+                self.show_if_filter_is_enabled(filter_type)
 
-        self.filtered()
+            self.filtered()
+        else:
+            logger.info("Interactivity is disabled temporarily ")
+
 
     def button_menu_factory(self, name: str = None):
 
@@ -1114,9 +1136,12 @@ class Ui_Dialog(Ui_Generic):
         Desription:
             This method runs when the any of the filters is changed, and ensures that the ui is updated accordingly.
         """
-        logging.debug("Refreshing UI based on changes")
-        # if self.interactive:
-        self.model.refresh()
+        if self.interactive:
+            logging.debug("Refreshing UI based on changes")
+            # if self.interactive:
+            self.model.refresh()
+        else:
+            logger.info("Interactivity is disabled temporarily ")
 
     def show_tree(self):
         self.view_stack.setCurrentWidget(self.tree_view)

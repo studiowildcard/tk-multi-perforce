@@ -5,7 +5,7 @@
             "default": "No name",
             "delegate": None,
             "transform": "sync_item",
-            "width": 300,
+            "width": 260,
         },
         {
             "key": "status",
@@ -23,18 +23,20 @@
             "filter": True
         },
         {
-            "key": "item_found",
-            "title": "Version",
-            "default": " ",
-            "width": 50,
-            "transform": "revision",
+          "key": "item_found",
+          "title": "Have Revision",
+          "default": " ",
+           "width": 70,
+          "transform": "have_revision",
         },
         {
-          "key": "item_found",
-          "title": "Has Revision",
-          "default": " ",
-          "transform": "has_revision",
+            "key": "item_found",
+            "title": "Head Revision",
+            "default": " ",
+            "width": 70,
+            "transform": "revision",
         },
+
         {
             "key": "item_found",
             "title": "Size (MB)",

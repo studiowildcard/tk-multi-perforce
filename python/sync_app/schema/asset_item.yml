@@ -5,7 +5,7 @@
             "transform": "asset_name",
             "default": "No name",
             "icon": "Asset",
-            "width": 380,
+            "width": 320,
 
         },
         {
@@ -22,24 +22,24 @@
             "default": None,
             "width": 70,
         },
-
-        {
-            "key": "_",
-            "title": "Revision",
-            "default": None,
-            "width": 60,
-        },
         {
           "key": "_",
-          "title": "Has Revision",
+          "title": "Have Revision",
           "default": None,
-          "width": 70,
+          "width": 90,
         },
+        {
+            "key": "_",
+            "title": "Head Revision",
+            "default": None,
+            "width": 90,
+        },
+
         {
             "key": "_",
             "title": "Size (MB)",
             "default": None,
-            "width": 60,
+            "width": 70,
         },
         {
             "key": "_",
