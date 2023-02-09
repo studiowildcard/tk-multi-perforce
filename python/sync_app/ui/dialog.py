@@ -255,6 +255,7 @@ class Ui_Dialog(Ui_Generic):
         # details layout
         self._no_selection_pixmap = QtGui.QPixmap(":/res/no_item_selected_512x400.png")
         self._no_pubs_found_icon = QtGui.QPixmap(":/res/no_publishes_found.png")
+        #self._no_pubs_found_icon = QtGui.QPixmap(":/tk-multi-perforce/no_publishes_found_v2.png")
 
         self.details_layout = QtGui.QVBoxLayout()
         self.details_layout.setSpacing(2)
@@ -267,17 +268,24 @@ class Ui_Dialog(Ui_Generic):
         spacerItem2 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem2)
         self.details_image = QtGui.QLabel()
+        """
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.details_image.sizePolicy().hasHeightForWidth())
         self.details_image.setSizePolicy(sizePolicy)
+        
+        
+        """
         self.details_image.setMinimumSize(QtCore.QSize(256, 200))
         self.details_image.setMaximumSize(QtCore.QSize(256, 200))
-        self.details_image.setScaledContents(True)
+        #self.details_image.setScaledContents(True)
         self.details_image.setAlignment(QtCore.Qt.AlignCenter)
+
         self.details_image.setObjectName("details_image")
-        self.details_image.setPixmap(self._no_selection_pixmap)
+        #self.details_image.setPixmap(self._no_selection_pixmap)
+        self.details_image.setPixmap(self._no_selection_pixmap.scaled(
+            self.details_image.width(), self.details_image.height(), QtCore.Qt.KeepAspectRatio))
         self.horizontalLayout.addWidget(self.details_image)
         spacerItem3 = QtGui.QSpacerItem(40, 40, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem3)
@@ -620,7 +628,9 @@ class Ui_Dialog(Ui_Generic):
     def _default_details_panel(self):
         self._publish_history_model.clear()
         self.details_header.setText("")
-        self.details_image.setPixmap(self._no_selection_pixmap)
+        #self.details_image.setPixmap(self._no_selection_pixmap)
+        self.details_image.setPixmap(self._no_selection_pixmap.scaled(
+            self.details_image.width(), self.details_image.height(), QtCore.Qt.KeepAspectRatio))
 
     def _setup_details_panel(self, key, id):
         """
@@ -656,7 +666,10 @@ class Ui_Dialog(Ui_Generic):
             """
             self._publish_history_model.clear()
             self.details_header.setText("")
-            self.details_image.setPixmap(pixmap)
+            #self.details_image.setPixmap(pixmap)
+            self.details_image.setPixmap(pixmap.scaled(
+                self.details_image.width(), self.details_image.height(), QtCore.Qt.KeepAspectRatio))
+
             __set_publish_ui_visibility(False)
 
         # note - before the UI has been shown, querying isVisible on the actual
@@ -696,7 +709,9 @@ class Ui_Dialog(Ui_Generic):
                         image_url = sg_data_dict.get("image")
                         file_path = "{}/tmp.png".format(self.dir_path)
                         urllib.request.urlretrieve(image_url, file_path)
-                        self.details_image.setPixmap(QtGui.QPixmap(file_path))
+                        #self.details_image.setPixmap(QtGui.QPixmap(file_path))
+                        self.details_image.setPixmap(QtGui.QPixmap(file_path).scaled(
+                            self.details_image.width(), self.details_image.height(), QtCore.Qt.KeepAspectRatio))
                         # msg = "Saving temp image file: {}".format(file_path)
                         # logger.info(msg)
                         # self.log_window.append(msg)

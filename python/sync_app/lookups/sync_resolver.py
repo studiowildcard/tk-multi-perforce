@@ -10,7 +10,9 @@ class SyncResolver(BaseResolver):
         super().__init__()
 
     def sync_item(self, dict_value):
-        return dict_value.get("depotFile").split("/")[-1]
+        if dict_value and "depotFile" in dict_value:
+            if dict_value.get("depotFile"):
+                return dict_value.get("depotFile").split("/")[-1]
 
     def sync_status(self, dict_value):
         if self.row:
