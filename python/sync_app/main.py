@@ -141,6 +141,8 @@ class SyncApp:
 
         self.initialize_data()
 
+
+
         self.ui._do.clicked.connect(self.start_sync)
 
         self.ui.interactive = True
@@ -161,7 +163,7 @@ class SyncApp:
                 progress_sum += (current_index / self.entity_total) / self._total
         # self.logger.info(">>> current: {}, total: {}, sum: {}".format(current_index, self.entity_total, progress_sum))
         if current_index == 0:
-            if self.entity_total < 100:
+            if self.entity_total < 1000:
                 msg = "\nInitializing data for entity ...\n\n"
             else:
                 msg = "\nInitializing data for entity. This may take few seconds ...\n\n"
@@ -310,11 +312,10 @@ class SyncApp:
         Iterate through assets and their sync items to start workers for all paths that require syncs.
         Utilize a global threadpool to process
         """
+        msg = "\n\n Syncing Files ...\n\n"
+        self.ui.add_log(msg)
 
         self.ui.interactive = False
-
-        #msg = "Starting sync ..."
-        #self.ui.add_log(msg)
 
         if not self.ui.progress_handler:
             self.ui.progress_handler = self.progress_handler
@@ -353,8 +354,9 @@ class SyncApp:
             self.threadpool.start(worker)
 
         self.ui.interactive = True
-        #msg = "Syncing is complete"
-        #self.ui.add_log(msg)
+
+        msg = "Syncing is complete"
+        self.ui.add_log(msg)
 
     def handle_raw_perforce_log(self, perforce_data):
         """
