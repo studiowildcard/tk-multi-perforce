@@ -254,8 +254,9 @@ class Ui_Dialog(Ui_Generic):
 
         # details layout
         self._no_selection_pixmap = QtGui.QPixmap(":/res/no_item_selected_512x400.png")
-        self._no_pubs_found_icon = QtGui.QPixmap(":/res/no_publishes_found.png")
-        #self._no_pubs_found_icon = QtGui.QPixmap(":/tk-multi-perforce/no_publishes_found_v2.png")
+        # self._no_pubs_found_icon = QtGui.QPixmap(":/res/no_publishes_found.png")
+        # self._no_pubs_found_icon = QtGui.QPixmap(":/tk_multi_perforce/no_publishes_found.png")
+        self._no_pubs_found_icon = QtGui.QPixmap(":/res/no_item_selected_512x400.png")
 
         self.details_layout = QtGui.QVBoxLayout()
         self.details_layout.setSpacing(2)
@@ -524,7 +525,7 @@ class Ui_Dialog(Ui_Generic):
                 self._global_progress_bar.setValue(0)
 
     def update_progress_bar(self, val):
-        if val <= 0 or val >= 1:
+        if val < 0 or val >= 1:
             self._progress_bar.setVisible(False)
             self._progress_bar.setValue(0)
             self._global_progress_bar.setVisible(False)
@@ -666,8 +667,7 @@ class Ui_Dialog(Ui_Generic):
             """
             self._publish_history_model.clear()
             self.details_header.setText("")
-            #self.details_image.setPixmap(pixmap)
-            self.details_image.setPixmap(pixmap.scaled(
+            self.details_image.setPixmap(QtGui.QPixmap(self._no_pubs_found_icon).scaled(
                 self.details_image.width(), self.details_image.height(), QtCore.Qt.KeepAspectRatio))
 
             __set_publish_ui_visibility(False)
@@ -680,7 +680,8 @@ class Ui_Dialog(Ui_Generic):
         if not key:
             #__clear_publish_history(self._no_selection_pixmap)
             __clear_publish_history(self._no_pubs_found_icon)
-            logger.info("Unable to item in SG data. Perhaps, item is not published")
+
+            logger.info("Unable to find the item in SG data. Item may not be published.")
 
             # an item which doesn't have any sg data directly associated
             # typically an item higher up the tree
@@ -696,7 +697,7 @@ class Ui_Dialog(Ui_Generic):
             sg_data_dict = self._get_sg_data_dict(key, id)
             if not sg_data_dict:
                 __clear_publish_history(self._no_pubs_found_icon)
-                msg = "Unable to find item in SG data. Perhaps, item is not published"
+                msg = "Unable to find the item in SG data. Item may not be published."
                 logger.info(msg)
                 self.add_log(msg)
 
@@ -1241,3 +1242,5 @@ class listWidget(QtGui.QListWidget):
             )  # create one long string out of all the list entries, but format them with a seperate line
 
         return
+
+from . import resources_rc

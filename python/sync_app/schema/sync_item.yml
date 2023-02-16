@@ -23,15 +23,8 @@
             "filter": True
         },
         {
-          "key": "item_found",
-          "title": "Have Revision",
-          "default": " ",
-           "width": 70,
-          "transform": "have_revision",
-        },
-        {
             "key": "item_found",
-            "title": "Head Revision",
+            "title": "Revision",
             "default": " ",
             "width": 70,
             "transform": "revision",

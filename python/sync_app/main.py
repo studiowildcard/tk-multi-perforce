@@ -334,7 +334,7 @@ class SyncApp:
                     self.item_map[sync_item.id] = sync_item
                     sync_worker.id = sync_item.id
 
-                    sync_worker.path_to_sync = sync_item.data(6)
+                    sync_worker.path_to_sync = sync_item.data(5)
                     sync_worker.asset_name = sync_item.parent().data(1).split(" ")[0]
 
                     sync_worker.fw = self.fw

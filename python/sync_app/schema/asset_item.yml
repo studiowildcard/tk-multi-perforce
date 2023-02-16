@@ -23,14 +23,8 @@
             "width": 70,
         },
         {
-          "key": "_",
-          "title": "Have Revision",
-          "default": None,
-          "width": 90,
-        },
-        {
             "key": "_",
-            "title": "Head Revision",
+            "title": "Revision",
             "default": None,
             "width": 90,
         },

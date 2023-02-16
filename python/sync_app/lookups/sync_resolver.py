@@ -52,7 +52,10 @@ class SyncResolver(BaseResolver):
         return msg
 
     def revision(self, dict_value):
-        return dict_value.get("rev")
+        head_revision = dict_value.get("rev", "0")
+        have_revision = dict_value.get("haveRev", '0')
+        rev = "{}/{}".format(have_revision, head_revision)
+        return rev
 
     def destination_path(self, dict_value):
         return dict_value.get("clientFile")
@@ -62,8 +65,5 @@ class SyncResolver(BaseResolver):
         if size:
             return "{:.2f}".format(int(size) / 1024 / 1024)
 
-    def have_revision(self, dict_value):
-        have_rev = dict_value.get("haveRev", '0')
-        return have_rev
 
 
