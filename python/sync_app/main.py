@@ -356,8 +356,9 @@ class SyncApp:
 
         self.ui.interactive = True
 
-        msg = "Syncing is complete"
-        self.ui.add_log(msg)
+        # msg = "Syncing is complete"
+        # self.ui.add_log(msg)
+
 
     def handle_raw_perforce_log(self, perforce_data):
         """
