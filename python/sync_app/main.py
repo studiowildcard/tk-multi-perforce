@@ -313,7 +313,7 @@ class SyncApp:
         Iterate through assets and their sync items to start workers for all paths that require syncs.
         Utilize a global threadpool to process
         """
-        msg = "\n\n Syncing Files ...\n\n"
+        msg = "\n Syncing Files ...\n"
         self.ui.add_log(msg)
 
         self.ui.interactive = False
