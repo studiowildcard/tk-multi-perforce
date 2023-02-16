@@ -141,7 +141,8 @@ class SyncApp:
 
         self.initialize_data()
 
-
+        msg = "\n\n"
+        self.ui.add_log(msg)
 
         self.ui._do.clicked.connect(self.start_sync)
 
@@ -164,9 +165,9 @@ class SyncApp:
         # self.logger.info(">>> current: {}, total: {}, sum: {}".format(current_index, self.entity_total, progress_sum))
         if current_index == 0:
             if self.entity_total < 1000:
-                msg = "\nInitializing data for entity ...\n\n"
+                msg = "\nInitializing data for entity ...\n"
             else:
-                msg = "\nInitializing data for entity. This may take few seconds ...\n\n"
+                msg = "\nInitializing data for entity. This may take few seconds ...\n"
             self.ui.add_log(msg)
 
         self.ui.update_progress_bar(progress_sum)
