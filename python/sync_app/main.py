@@ -290,9 +290,9 @@ class SyncApp:
 
         self.progress_handler.iterate("sync_workers")
         self.ui.update_progress()
-
+        self.current_count += 1
         # self.logger.info(status_dict.get("path"))
-        msg = "Syncing: {} ...".format(status_dict.get("path"))
+        msg = "({}) Syncing: {} ...".format(self.current_count, status_dict.get("path"))
         self.ui.add_log(msg)
 
         item.syncing = False

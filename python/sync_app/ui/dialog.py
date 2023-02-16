@@ -402,6 +402,7 @@ class Ui_Dialog(Ui_Generic):
 
         self.interactive = True
         self.show_waiting()
+        self.reset_all_filters()
 
     def add_log(self, msg):
         self.log_window.append(msg)
@@ -1243,4 +1244,4 @@ class listWidget(QtGui.QListWidget):
 
         return
 
-from . import resources_rc
+#from . import resources_rc

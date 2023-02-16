@@ -264,9 +264,12 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
             else:
                 # if the response from p4 has items... make UI elements for them
                 self._items_to_sync = [i for i in sync_response if type(i) != str]
+                # self._items_to_sync = [i for i in sync_response]
                 self._status = "{} items to Sync".format(len(self._items_to_sync))
                 self._icon = "load"
                 self._detail = self.root_path
+
+            logger.info(">>>>>> Unpublished: self._items_to_sync count: {} ".format(len(self._items_to_sync)))
 
         if self.entity.get("type") in ["PublishedFile"]:
             self._items_to_sync = [
@@ -275,6 +278,8 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
             self._status = "Exact Path"
             self._detail = "Exact path specified: [{}]".format(self.root_path)
             self._icon = "load"
+            logger.info(">>>>>> Published: self._items_to_sync count: {} ".format(len(self._items_to_sync)))
+            logger.info("self._items_to_sync count: {} ".format(self._items_to_sync))
 
     @QtCore.Slot()
     def run(self):
@@ -334,7 +339,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                         # Store haveRev data in item
                         client_file = item.get("clientFile", None)
                         if client_file:
-                            item["haveRev"] =  self.have_rev_dict.get(client_file, "0")
+                            item["haveRev"] = self.have_rev_dict.get(client_file, "0")
 
                         status = item.get("action")
                         if self.entity.get("type") in ["PublishedFile"]:
