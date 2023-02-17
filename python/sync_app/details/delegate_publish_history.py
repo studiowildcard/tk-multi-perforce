@@ -11,7 +11,7 @@
 import sgtk
 import datetime
 import urllib
-import requests
+#import requests
 
 from sgtk.platform.qt import QtCore, QtGui
 
