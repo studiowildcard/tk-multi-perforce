@@ -228,7 +228,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
         """
         logger.debug("DRY RESPONSE RAN!")
 
-        if self.root_path and (self.entity.get("type") not in ["PublishedFile"]):
+        if self.root_path: 
 
             self.p4 = self.fw.connection.connect()
 
@@ -269,22 +269,6 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                 self._detail = self.root_path
 
             logger.info(">>>>>> Unpublished: self._items_to_sync count: {} ".format(len(self._items_to_sync)))
-
-        if self.entity.get("type") in ["PublishedFile"]:
-            self._items_to_sync = [
-                {"clientFile": self.root_path}
-            ]
-            fstat_list = self.p4.run("fstat", self.root_path)
-            for fstat in fstat_list:
-                key = fstat.get('clientFile', None)
-                val = fstat.get('haveRev', "0")
-                if key:
-                    self.have_rev_dict[key] = val            
-            self._status = "Exact Path"
-            self._detail = "Exact path specified: [{}]".format(self.root_path)
-            self._icon = "load"
-            logger.info(">>>>>> Published: self._items_to_sync count: {} ".format(len(self._items_to_sync)))
-            logger.info("self._items_to_sync count: {} ".format(self._items_to_sync))
 
     @QtCore.Slot()
     def run(self):
