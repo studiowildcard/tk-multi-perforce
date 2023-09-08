@@ -77,12 +77,9 @@ class TemplateResolver:
             return self._incoming_entity.get("path_cache")
         else:
             # self.app.log_info(self.template_fields)
-            templated_path = self.root_template.apply_fields(
-                self.template_fields, sys.platform
-            )
-            return os.path.join(
-                "//{}/".format(self.p4.client) + templated_path[3:], "..."
-            ).replace("\\", "/")
+            templated_path = self.app.sgtk.paths_from_entity(self.entity["type"],self.entity["id"])
+            if len(templated_path) == 1:
+                return os.path.join(templated_path[0],"...")
 
     @property
     def entity_info(self):

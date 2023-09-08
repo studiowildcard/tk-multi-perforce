@@ -185,8 +185,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
     def root_path(self):
         rp = self.asset_item.get("root_path")
         if self.entity.get("type") in ["PublishedFile"]:
-            # TODO: this needs to become dynamic
-            rp = "B:/" + self.entity.get("path_cache")
+            rp = (self.entity.get("path")).get("local_path")
         return rp
 
     @property
@@ -257,7 +256,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                 self._icon = "error"
                 self._detail = "Nothing in depot resolves [{}]".format(self.root_path)
 
-            elif len(sync_response) is 1 and type(sync_response[0]) is str:
+            elif len(sync_response) == 1 and type(sync_response[0]) is str:
                 self._status = "Syncd"
                 self._icon = "success"
                 self._detail = "Nothing new to sync for [{}]".format(self.root_path)
@@ -273,8 +272,14 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
 
         if self.entity.get("type") in ["PublishedFile"]:
             self._items_to_sync = [
-                {"clientFile": "B:/" + self.entity.get("path_cache")}
+                {"clientFile": self.root_path}
             ]
+            fstat_list = self.p4.run("fstat", self.root_path)
+            for fstat in fstat_list:
+                key = fstat.get('clientFile', None)
+                val = fstat.get('haveRev', "0")
+                if key:
+                    self.have_rev_dict[key] = val            
             self._status = "Exact Path"
             self._detail = "Exact path specified: [{}]".format(self.root_path)
             self._icon = "load"
