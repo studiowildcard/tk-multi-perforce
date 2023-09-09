@@ -92,7 +92,7 @@ class SyncWorker(QtCore.QRunnable):
 
             # emit item key and p4 response to main thread
 
-            self.completed.emit({"model_item": self.id, "path": self.path_to_sync})
+            self.completed.emit({"model_item": self.id, "path": self.path_to_sync, "p4_data": p4_response})
 
         except Exception as e:
             import traceback

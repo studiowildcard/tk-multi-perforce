@@ -849,18 +849,19 @@ class Ui_Dialog(Ui_Generic):
 
             # get index of the column
             path_index = pointer_to_source_item.schema.key_index_map.get("item_found")
-            # retrieve the path for that item on the given index
-            client_file = pointer_to_source_item.rowData[path_index]
+            if path_index:
+                # retrieve the path for that item on the given index
+                client_file = pointer_to_source_item.rowData[path_index]
 
-            """
-            key = key[2:]
-            key.replace("/", "\\")
-            key = "/{}".format(key)
-            """
+                """
+                key = key[2:]
+                key.replace("/", "\\")
+                key = "/{}".format(key)
+                """
 
-            if client_file in self._row_data:
-                key = self._row_data[client_file]
-                logger.info(">>>>>> key: {}".format(client_file))
+                if client_file in self._row_data:
+                    key = self._row_data[client_file]
+                    logger.info(">>>>>> key: {}".format(client_file))
 
             if key:
                 msg = "Displaying details of file: {}".format(key)

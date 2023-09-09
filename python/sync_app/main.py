@@ -304,6 +304,8 @@ class SyncApp:
             item.error = status_dict["error"]
         else:
             item.syncd = True
+            if status_dict.get("p4_data"):
+                item.newrev = status_dict["p4_data"][0].get("rev")
 
         self.ui.interactive = True
         # self.ui.model.refresh()

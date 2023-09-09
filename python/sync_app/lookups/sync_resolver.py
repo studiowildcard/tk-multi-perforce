@@ -52,8 +52,12 @@ class SyncResolver(BaseResolver):
         return msg
 
     def revision(self, dict_value):
+        if hasattr(self.row, "newrev"):
+            if self.row.syncd:
+                have_revision = self.row.newrev
+        else:
+            have_revision = dict_value.get("haveRev", '0')        
         head_revision = dict_value.get("rev", "0")
-        have_revision = dict_value.get("haveRev", '0')
         rev = "{}/{}".format(have_revision, head_revision)
         return rev
 
