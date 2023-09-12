@@ -44,6 +44,8 @@ class IconManager:
         return self.get_icon("load")
 
     def asset_status(self):
+        if self.current_data == "Error":
+            return self.get_icon("error")
         if not self.item.childItems:
             return self.get_icon("success")
         return self.get_icon("validate")

@@ -77,6 +77,7 @@ class SyncWorker(QtCore.QRunnable):
         """
         Run syncs from perforce, signals information back to main thread.
         """
+      
         try:
 
             self.started.emit({"model_item": self.id})
@@ -201,7 +202,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
         Call perforce for response and form data we will signal back
         """
 
-        if self.status != "error":
+        if self.status != "Error":
             self.get_perforce_sync_dry_reponse()
 
         # payload that we'll send back to the main thread to make UI item with
@@ -269,6 +270,10 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                 self._detail = self.root_path
 
             logger.info(">>>>>> Unpublished: self._items_to_sync count: {} ".format(len(self._items_to_sync)))
+        else:
+            self._status = "Error"
+            self._icon = "error"
+            self._detail = f"Asset has no or multiple root paths."
 
     @QtCore.Slot()
     def run(self):
@@ -341,6 +346,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                                 "ext": ext.lower(),
                                 "status": status,
                                 "index": j,
+                                "detail": self.root_path
                             }
                         )
                 else:
@@ -349,10 +355,20 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                             "worker_id": self.id,
                             "asset_name": self.asset_name,
                             "status": "Everything sync'd",
+                            "detail": self.root_path
                         }
                     )
             else:
                 progress_status_string = " (Encountered error. See details)"
+                self.item_found_to_sync.emit(
+                    {
+                        "worker_id": self.id,
+                        "asset_name": self.asset_name,
+                        "status": self.status,
+                        "detail": str(self._detail)
+                    }
+                )             
+                self.log_error(self._detail)         
             # self.fw.log_info(progress_status_string)
 
         except Exception as e:

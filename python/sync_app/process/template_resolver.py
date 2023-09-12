@@ -80,13 +80,21 @@ class TemplateResolver:
             templated_path = self.app.sgtk.paths_from_entity(self.entity["type"],self.entity["id"])
             if len(templated_path) == 1:
                 return os.path.join(templated_path[0],"...")
+            else:
+                raise Exception(
+                    f"Multiple root paths specified for resolving {self.entity}: {str(templated_path)}"
+                )            
 
     @property
     def entity_info(self):
-
-        info = {
-            "entity": self.entity,
-            "context": self.context,
-            "root_path": self.root_path2,
-        }
+        try:
+            info = {
+                "entity": self.entity,
+                "context": self.context,
+                "root_path": self.root_path2,
+            }   
+        except Exception as e:
+            info = {
+                "error": e 
+            }  
         return info

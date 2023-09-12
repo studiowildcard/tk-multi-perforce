@@ -36,7 +36,7 @@
             "width": 70,
         },
         {
-            "key": "_",
+            "key": "detail",
             "title": "Destination Path",
             "default": None,
             "width": 140,

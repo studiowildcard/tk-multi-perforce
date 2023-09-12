@@ -38,16 +38,19 @@ class SyncResolver(BaseResolver):
 
     def total_to_sync(self, dict_value):
         items = 0
-        if self.row:
-            items = self.row.childCount()
-        filtered = items - self.row.visible_children()
-        msg = "{} To Sync".format(items - filtered)
+        if dict_value != "Error":
+            if self.row:
+                items = self.row.childCount()
+            filtered = items - self.row.visible_children()
+            msg = "{} To Sync".format(items - filtered)
 
-        if filtered:
-            msg += " ({} filtered)".format(filtered)
+            if filtered:
+                msg += " ({} filtered)".format(filtered)
 
-        if not self.row.childItems:
-            msg = "Up to date"
+            if not self.row.childItems:
+                msg = "Up to date"
+        else:
+            msg = dict_value
 
         return msg
 
@@ -63,6 +66,9 @@ class SyncResolver(BaseResolver):
 
     def destination_path(self, dict_value):
         return dict_value.get("clientFile")
+    
+    def detail(self, dict_value):
+        return dict_value.get("detail")    
 
     def file_size(self, dict_value):
         size = dict_value.get("fileSize")
