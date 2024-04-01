@@ -2,11 +2,11 @@
 #
 # CONFIDENTIAL AND PROPRIETARY
 #
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
+# This work is provided "AS IS" and subject to the Flow Production Tracking Toolkit
 # Source Code License included in this distribution package. See LICENSE.
 # By accessing, using, copying or modifying this work you indicate your
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
-# not expressly granted therein are reserved by Shotgun Software Inc.
+# agreement to the Flow Production Tracking Toolkit Source Code License. All rights
+# not expressly granted therein are reserved by Flow Production Tracking Software Inc.
 
 # Metadata defining the behaviour and requirements for this app
 
@@ -77,13 +77,13 @@ configuration:
         Texture: [ load_clip ]
 
 
-# the Shotgun fields that this app needs in order to operate correctly
+# the Flow Production Tracking fields that this app needs in order to operate correctly
 requires_shotgun_fields:
 
 # More verbose description of this item
 display_name: "Perforce"
 description: "This app provides common Perforce commands such as check-out and revert of the current
-              scene, directly from the Shotgun menu.  Additionally, it also handles Perforce login
+              scene, directly from the Flow Production Tracking menu.  Additionally, it also handles Perforce login
               on start-up and provides a command to help manage any pending publishes that are yet
               to be submitted to Perforce"
 
