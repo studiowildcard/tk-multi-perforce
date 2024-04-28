@@ -67,12 +67,16 @@ class MultiModel(QtCore.QAbstractItemModel):
         item = index.internalPointer()
         if role == QtCore.Qt.DecorationRole:
 
+            # Todo: uncomment this
             icon_static = item.column_schema[col].get("icon")
+            #icon_static = None
             # logger.info()
             if icon_static:
                 return self.icon_manager.get_icon(icon_static)
 
+            # Todo: uncomment this
             icon_finder = item.column_schema[col].get("icon_finder")
+            #icon_finder = None
             if icon_finder:
                 if hasattr(self.icon_manager, icon_finder):
                     self.icon_manager.item = item

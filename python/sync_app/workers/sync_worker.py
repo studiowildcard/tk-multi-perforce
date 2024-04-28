@@ -77,6 +77,7 @@ class SyncWorker(QtCore.QRunnable):
         """
         Run syncs from perforce, signals information back to main thread.
         """
+      
         try:
 
             self.started.emit({"model_item": self.id})
@@ -85,14 +86,14 @@ class SyncWorker(QtCore.QRunnable):
             logger.debug("P4 CONNECTION ESTABLISHED: {}".format(self.p4))
 
             # # run the syncs
-            logger.debug("THIS IS PATH_TO_SYNC: {}".format(self.path_to_sync))
+            #logger.debug("THIS IS PATH_TO_SYNC: {}".format(self.path_to_sync))
 
             p4_response = self.p4.run("sync", "-f", "{}#head".format(self.path_to_sync))
             # logger.debug("THIS IS P4_RESPONSE: {}".format(p4_response))
 
             # emit item key and p4 response to main thread
 
-            self.completed.emit({"model_item": self.id, "path": self.path_to_sync})
+            self.completed.emit({"model_item": self.id, "path": self.path_to_sync, "p4_data": p4_response})
 
         except Exception as e:
             import traceback
@@ -140,6 +141,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
         self.progress = self.signaller.progress
         self.root_path_resolved = self.signaller.root_path_resolved
         self.item_found_to_sync = self.signaller.item_found_to_sync
+        #self.sg_data_found_to_sync = self.signaller.sg_data_found_to_sync
         self.status_update = self.signaller.status_update
         self.includes = self.signaller.includes
         self.total_items_found = self.signaller.total_items_found
@@ -147,7 +149,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
 
         self.p4_log_received = self.signaller.p4_log_received  # raw p4 log
 
-        self.publish_file = False
+        self.have_rev_dict = {}
 
         self.spec_file = os.path.join(os.path.expanduser("~"), "p4spec.txt")
 
@@ -184,8 +186,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
     def root_path(self):
         rp = self.asset_item.get("root_path")
         if self.entity.get("type") in ["PublishedFile"]:
-            # TODO: this needs to become dynamic
-            rp = "B:/" + self.entity.get("path_cache")
+            rp = (self.entity.get("path")).get("local_path")
         return rp
 
     @property
@@ -201,7 +202,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
         Call perforce for response and form data we will signal back
         """
 
-        if self.status != "error":
+        if self.status != "Error":
             self.get_perforce_sync_dry_reponse()
 
         # payload that we'll send back to the main thread to make UI item with
@@ -215,7 +216,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
             "items_to_sync": self._items_to_sync,
         }
 
-        logger.debug("These are items to sync: {}".format(self._items_to_sync))
+        #logger.debug("These are items to sync: {}".format(self._items_to_sync))
 
     def write_spec_file(self, contents):
         with open(self.spec_file, "w") as spec_file:
@@ -228,7 +229,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
         """
         logger.debug("DRY RESPONSE RAN!")
 
-        if self.root_path and (self.entity.get("type") not in ["PublishedFile"]):
+        if self.root_path: 
 
             self.p4 = self.fw.connection.connect()
 
@@ -236,6 +237,14 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
             if self.force:
                 arguments.append("-f")
             sync_response = self.p4.run("sync", *arguments, self.root_path + "#head")
+
+            fstat_list = self.p4.run("fstat", self.root_path)
+            for fstat in fstat_list:
+                key = fstat.get('clientFile', None)
+                val = fstat.get('haveRev', "0")
+                if key:
+                    self.have_rev_dict[key] = val
+            # logger.info(">>>>>>>>>fstat_response: {}".format(fstat_response))
 
             # Keys in dictionary is: depotFile,clientFile,rev,action,fileSize
 
@@ -248,24 +257,23 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                 self._icon = "error"
                 self._detail = "Nothing in depot resolves [{}]".format(self.root_path)
 
-            elif len(sync_response) is 1 and type(sync_response[0]) is str:
+            elif len(sync_response) == 1 and type(sync_response[0]) is str:
                 self._status = "Syncd"
                 self._icon = "success"
                 self._detail = "Nothing new to sync for [{}]".format(self.root_path)
             else:
                 # if the response from p4 has items... make UI elements for them
                 self._items_to_sync = [i for i in sync_response if type(i) != str]
+                # self._items_to_sync = [i for i in sync_response]
                 self._status = "{} items to Sync".format(len(self._items_to_sync))
                 self._icon = "load"
                 self._detail = self.root_path
 
-        if self.entity.get("type") in ["PublishedFile"]:
-            self._items_to_sync = [
-                {"clientFile": "B:/" + self.entity.get("path_cache")}
-            ]
-            self._status = "Exact Path"
-            self._detail = "Exact path specified: [{}]".format(self.root_path)
-            self._icon = "load"
+            logger.info(">>>>>> Unpublished: self._items_to_sync count: {} ".format(len(self._items_to_sync)))
+        else:
+            self._status = "Error"
+            self._icon = "error"
+            self._detail = f"Asset has no or multiple root paths."
 
     @QtCore.Slot()
     def run(self):
@@ -292,78 +300,40 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
 
             if self.status == "Syncd":
                 progress_status_string = " (Nothing to sync. Skipping...)"
-            self.log_error(str(self._items_to_sync))
+            # self.log_error(str(self._items_to_sync))
             if self.status != "Error":
 
                 if self._items_to_sync:
+                    items_count = len(self._items_to_sync)
 
+                    logger.info("Emitting info")
                     self.total_items_found.emit(
-                        {"id": self.id, "count": len(self._items_to_sync)}
+                        {"id": -1, "count": items_count}
                     )
-                    # make lookup list for SG api call for published files to correlate.
-                    depot_files = [i.get("depotFile") for i in self._items_to_sync]
-                    find_fields = [
-                        "sg_p4_change_number",
-                        "code",
-                        "entity.Asset.code",
-                        "sg_p4_depo_path",
-                        "task.Task.step.Step.code",
-                        "published_file_type.PublishedFileType.code",
-                    ]
 
-                    # if we want to look for results PER depot file, we look against the list
-                    sg_filter = ["sg_p4_depo_path", "in", depot_files]
-
-                    # if the entity itself is a PublishedFile, use it's ID
-                    if self.entity.get("type") in ["PublishedFile"]:
-                        sg_filter = ["id", "in", self.entity.get("id")]
-
-                    # get PublishedFile information needed, as configured above with fields and filters
-                    published_files = self.app.shotgun.find(
-                        "PublishedFile", [sg_filter], find_fields
-                    )
-                    # make dictionary of items callable by key: sg_p4_depot_path
-                    published_file_by_depot_file = {
-                        i.get("sg_p4_depo_path"): i for i in published_files
-                    }
-                    # self.fw.log_info(published_file_by_depot_file)
-                    for item in self._items_to_sync:
-
-                        published_file = published_file_by_depot_file.get(
-                            item.get("depotFile")
-                        )
+                    for j, item in enumerate(self._items_to_sync):
+                        if j % 50 == 0 or j == items_count-1:
+                            self.total_items_found.emit(
+                                {"id": j, "count": items_count}
+                            )
 
                         for i in self.asset_map.keys():
-                            # self.log_error(i)
-                            # self.log_error(item.get("clientFile"))
                             if i in item.get("clientFile"):
                                 self.asset_item = self.asset_map[i]["asset"]
                                 self.entity = self.asset_map[i]["entity"]
 
-                        # step = None # grab step here
                         ext = None
-                        step = None
-                        file_type = None
-
-                        if published_file:
-
-                            step = published_file.get("task.Task.step.Step.code")
-                            if step:
-                                self.includes.emit(("step", step))
-
-                            file_type = published_file.get(
-                                "published_file_type.PublishedFileType.code"
-                            )
-                            if file_type:
-                                self.includes.emit(("type", file_type))
-
-                            ext = None
 
                         if "." in item.get("clientFile"):
                             ext = os.path.basename(item.get("clientFile")).split(".")[
                                 -1
                             ]
                             self.includes.emit(("ext", ext.lower()))
+
+                        # Store haveRev data in item
+                        client_file = item.get("clientFile", None)
+                        if client_file:
+                            item["haveRev"] = self.have_rev_dict.get(client_file, "0")
 
                         status = item.get("action")
                         if self.entity.get("type") in ["PublishedFile"]:
@@ -373,23 +343,32 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                                 "worker_id": self.id,
                                 "asset_name": self.asset_name,
                                 "item_found": item,
-                                "step": step,
-                                "type": file_type,
                                 "ext": ext.lower(),
                                 "status": status,
+                                "index": j,
+                                "detail": self.root_path
                             }
                         )
                 else:
-                    self.total_items_found.emit({"id": self.id, "count": 1})
                     self.item_found_to_sync.emit(
                         {
                             "worker_id": self.id,
                             "asset_name": self.asset_name,
                             "status": "Everything sync'd",
+                            "detail": self.root_path
                         }
                     )
             else:
                 progress_status_string = " (Encountered error. See details)"
+                self.item_found_to_sync.emit(
+                    {
+                        "worker_id": self.id,
+                        "asset_name": self.asset_name,
+                        "status": self.status,
+                        "detail": str(self._detail)
+                    }
+                )             
+                self.log_error(self._detail)         
             # self.fw.log_info(progress_status_string)
 
         except Exception as e:

@@ -10,7 +10,9 @@ class SyncResolver(BaseResolver):
         super().__init__()
 
     def sync_item(self, dict_value):
-        return dict_value.get("depotFile").split("/")[-1]
+        if dict_value and "depotFile" in dict_value:
+            if dict_value.get("depotFile"):
+                return dict_value.get("depotFile").split("/")[-1]
 
     def sync_status(self, dict_value):
         if self.row:
@@ -36,26 +38,42 @@ class SyncResolver(BaseResolver):
 
     def total_to_sync(self, dict_value):
         items = 0
-        if self.row:
-            items = self.row.childCount()
-        filtered = items - self.row.visible_children()
-        msg = "{} To Sync".format(items - filtered)
+        if dict_value != "Error":
+            if self.row:
+                items = self.row.childCount()
+            filtered = items - self.row.visible_children()
+            msg = "{} To Sync".format(items - filtered)
 
-        if filtered:
-            msg += " ({} filtered)".format(filtered)
+            if filtered:
+                msg += " ({} filtered)".format(filtered)
 
-        if not self.row.childItems:
-            msg = "Up to date"
+            if not self.row.childItems:
+                msg = "Up to date"
+        else:
+            msg = dict_value
 
         return msg
 
     def revision(self, dict_value):
-        return dict_value.get("rev")
+        if hasattr(self.row, "newrev"):
+            if self.row.syncd:
+                have_revision = self.row.newrev
+        else:
+            have_revision = dict_value.get("haveRev", '0')        
+        head_revision = dict_value.get("rev", "0")
+        rev = "{}/{}".format(have_revision, head_revision)
+        return rev
 
     def destination_path(self, dict_value):
         return dict_value.get("clientFile")
+    
+    def detail(self, dict_value):
+        return dict_value.get("detail")    
 
     def file_size(self, dict_value):
         size = dict_value.get("fileSize")
         if size:
             return "{:.2f}".format(int(size) / 1024 / 1024)
+
+
+

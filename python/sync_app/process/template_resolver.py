@@ -77,19 +77,24 @@ class TemplateResolver:
             return self._incoming_entity.get("path_cache")
         else:
             # self.app.log_info(self.template_fields)
-            templated_path = self.root_template.apply_fields(
-                self.template_fields, sys.platform
-            )
-            return os.path.join(
-                "//{}/".format(self.p4.client) + templated_path[3:], "..."
-            ).replace("\\", "/")
+            templated_path = self.app.sgtk.paths_from_entity(self.entity["type"],self.entity["id"])
+            if len(templated_path) == 1:
+                return os.path.join(templated_path[0],"...")
+            else:
+                raise Exception(
+                    f"Multiple root paths specified for resolving {self.entity}: {str(templated_path)}"
+                )            
 
     @property
     def entity_info(self):
-
-        info = {
-            "entity": self.entity,
-            "context": self.context,
-            "root_path": self.root_path2,
-        }
+        try:
+            info = {
+                "entity": self.entity,
+                "context": self.context,
+                "root_path": self.root_path2,
+            }   
+        except Exception as e:
+            info = {
+                "error": e 
+            }  
         return info

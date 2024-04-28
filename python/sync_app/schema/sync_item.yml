@@ -5,7 +5,7 @@
             "default": "No name",
             "delegate": None,
             "transform": "sync_item",
-            "width": 300,
+            "width": 260,
         },
         {
             "key": "status",
@@ -24,14 +24,17 @@
         },
         {
             "key": "item_found",
-            "title": "Version",
+            "title": "Revision",
             "default": " ",
+            "width": 70,
             "transform": "revision",
         },
+
         {
             "key": "item_found",
             "title": "Size (MB)",
             "default": " ",
+             "width": 50,
             "transform": "file_size",
         },
         {
@@ -40,18 +43,5 @@
             "default": " ",
             "transform": "destination_path",
         },
-        {
-            "key": "type",
-            "title": "Type",
-            "default": "No Description",
-            "width": 100,
-            "filter": True
-        },
-        {
-            "key": "step",
-            "title": "Step",
-            "default": "No Description",
-            "width": 100,
-            "filter": True,
-        },
+
     ]
