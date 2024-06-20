@@ -57,6 +57,7 @@ class Ui_Dialog(Ui_Generic):
     """
     Description:
         A class for the construction of sync app UI.
+
     """
 
     def __init__(self, parent, app, **kwargs):
@@ -97,6 +98,7 @@ class Ui_Dialog(Ui_Generic):
         """
         Merge row_data into self._row_data
         """
+        # set the shotgun instance
         self._sg = app.shotgun
         for key in row_data.keys():
             if key not in self._row_data.keys():
