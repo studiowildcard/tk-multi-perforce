@@ -12,10 +12,8 @@ import sgtk
 from sgtk import TankError
 from sgtk.platform.qt import QtCore, QtGui
 
-shotgun_model = sgtk.platform.import_framework(
-    "tk-framework-shotgunutils", "shotgun_model"
-)
-
+# Do not import the framework at the top level
+# shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 
 def get_item_data(item):
     """
@@ -29,118 +27,13 @@ def get_item_data(item):
     :param item: Selected item or model index.
     :return: Standardized `(Shotgun data, field value)` extracted from the item data.
     """
+    # Import the framework within the function to ensure context
+    shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 
     # Get the item data to be rendered in the form of text.
     text_data = shotgun_model.get_sanitized_data(item, QtCore.Qt.DisplayRole)
 
     # Get the item data for user role SG_DATA_ROLE.
-    #
-    # For an item in the ShotgunModel tree structure:
-    # - for an intermediate item, this data is None.
-    # - for a leaf item, this data is a dictionary with keys:
-    #       "id" and "type",
-    #       plus usually "code", "project" and "sg_asset_type" for assets,
-    #       plus usually "code", "project" and "sg_sequence" for shots,
-    #       plus usually "content", "entity" and "project" for tasks,
-    #       plus "description", "image" and "sg_status_list".
-    #
-    # Example for a ShotgunModel asset leaf item:
-    # {
-    #     'id': 1230,
-    #     'type': 'Asset',
-    #     'code': 'Bunny',
-    #     'project': {
-    #         'id': 70,
-    #         'name': 'Demo: Animation',
-    #         'type': 'Project'
-    #     },
-    #     'sg_asset_type': 'Character',
-    #     'description': '...',
-    #     'image': 'https://...',
-    #     'sg_status_list': 'fin'
-    # }
-    #
-    # Example for a ShotgunModel shot leaf item:
-    # {
-    #     'id': 862,
-    #     'type': 'Shot',
-    #     'code': 'bunny_010_0010',
-    #     'project': {
-    #         'id': 70,
-    #         'name': 'Demo: Animation',
-    #         'type': 'Project'
-    #     },
-    #     'sg_sequence': {
-    #         'id': 23,
-    #         'name': 'bunny_010',
-    #         'type': 'Sequence'
-    #     },
-    #     'description': '...',
-    #     'image': 'https://s...',
-    #     'sg_status_list': 'fin'
-    # }
-    #
-    # For an item in the ShotgunHierarchyModel tree structure,
-    # this data is a dictionary with these keys among others:
-    # - "has_children" with a boolean value,
-    # - "ref" which value is a dictionary with keys:
-    #       "kind" and "value"
-    #
-    # Example for a ShotgunHierarchyModel intermediate item (without any extra entity fields requested):
-    # {
-    #     'has_children': True,
-    #     'label': 'Character',
-    #     'path': '/Project/70/Asset/sg_asset_type/Character',
-    #     'ref': {
-    #         'kind': 'list',
-    #         'value': 'Character'
-    #     },
-    #     'target_entities': {
-    #         'additional_filter_presets': [
-    #             {
-    #                 'path': '/Project/70/Asset/sg_asset_type/Character',
-    #                 'preset_name': 'NAV_ENTRIES',
-    #                 'seed': {
-    #                     'field': 'entity',
-    #                     'type': 'PublishedFile'
-    #                 }
-    #             }
-    #         ],
-    #         'type': 'PublishedFile'
-    #     }
-    # }
-    #
-    # Example for a ShotgunHierarchyModel leaf item (with the extra entity fields requested):
-    # {
-    #     'has_children': False,
-    #     'label': 'Bunny',
-    #     'path': '/Project/70/Asset/sg_asset_type/Character/id/1230',
-    #     'ref': {
-    #         'kind': 'entity',
-    #         'value': {
-    #             'id': 1230,
-    #             'type': 'Asset',
-    #             'code': 'Bunny',
-    #             'description': '...',
-    #             'image': '/thumbnail/Asset/1230?567',
-    #             'sg_status_list': 'fin'
-    #         }
-    #     },
-    #     'target_entities': {
-    #         'additional_filter_presets': [
-    #             {
-    #                 'path': '/Project/70/Asset/sg_asset_type/Character/id/1230',
-    #                 'preset_name': 'NAV_ENTRIES',
-    #                 'seed': {
-    #                     'field': 'entity',
-    #                     'type': 'PublishedFile'
-    #                 }
-    #             }
-    #         ],
-    #         'type': 'PublishedFile'
-    #     }
-    # }
-    #
     sg_data = shotgun_model.get_sg_data(item)
 
     # Get the item data for user role SG_ASSOCIATED_FIELD_ROLE.

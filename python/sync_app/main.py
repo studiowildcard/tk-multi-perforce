@@ -50,9 +50,12 @@ class SyncApp:
         self.progress_handler = ProgressHandler()
 
         self.workers = {"asset_info": AssetInfoGatherWorker, "sync": SyncWorker}
-        self.shotgun_globals = sgtk.platform.import_framework(
-            "tk-framework-shotgunutils", "shotgun_globals"
-        )
+        try:
+            self.shotgun_globals = sgtk.platform.import_framework(
+                "tk-framework-shotgunutils", "shotgun_globals"
+            )
+        except Exception as e:
+            log.error("Failed to import shotgun_globals: {}".format(e))
 
         # the threadpool we send thread workers to.
         self.threadpool = QtCore.QThreadPool.globalInstance()
@@ -118,18 +121,48 @@ class SyncApp:
         """
         Implement framework if doesnt currently exist,  return it if it does
         """
-        if not self._p4:
-            self._p4 = self.fw.connection.connect()
-        return self._p4
+        try:
+            if not self._p4:
+                self._p4 = self.fw.connection.connect()
+            return self._p4
+        except Exception as e:
+            log.error("Failed to connect to Perforce server.")
+            log.error(str(e))
+        return None
 
     @property
     def fw(self):
         """
         Implement framework if doesnt currently exist,  return it if it does
         """
-        if not self._fw:
-            self._fw = sgtk.platform.get_framework("tk-framework-perforce")
-        return self._fw
+        try:
+            if not self._fw:
+                self._fw = sgtk.platform.get_framework("tk-framework-perforce")
+                return self._fw
+        except Exception as e:
+            log.error("Failed to import tk-framework-perforce module. Check if the framework is properly installed and configured.")
+            log.error(str(e))
+        return None
+
+
+    def initialize_frameworks(self):
+        """
+        Initialize ShotGrid frameworks once the app context is valid.
+        """
+        try:
+            if not hasattr(self.parent_sgtk_app, "import_module"):
+                raise RuntimeError("Invalid context: 'parent_sgtk_app' does not support 'import_module'.")
+
+            log.info("Attempting to import 'tk-framework-shotgunutils' framework.")
+            framework_module = self.parent_sgtk_app.import_module("tk-framework-shotgunutils")
+            self.shotgun_globals = framework_module.shotgun_globals
+
+        except sgtk.TankError as e:
+            log.error(f"Framework import error: Failed to import the 'tk-framework-shotgunutils' framework. Verify the framework is included in your ShotGrid configuration.")
+            log.error(f"{e}")
+            #raise RuntimeError(
+            #    "Failed to import the 'tk-framework-shotgunutils' framework. Verify the framework is included in your ShotGrid configuration."
+            #)
 
     def setup(self):
         """
@@ -138,7 +171,7 @@ class SyncApp:
 
         """
         # self.ui.list_of_filter_types = ["step", "type", "ext"]
-
+        #self.initialize_frameworks()
         self.initialize_data()
 
         msg = "\n\n"

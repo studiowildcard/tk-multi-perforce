@@ -13,16 +13,12 @@ from sgtk.platform.qt import QtCore, QtGui
 
 from . import loader_utils, constants
 
-# import the shotgun_model module from the shotgun utils framework
-shotgun_model = sgtk.platform.import_framework(
-    "tk-framework-shotgunutils", "shotgun_model"
-)
-ShotgunModel = shotgun_model.ShotgunModel
+
 
 # standard toolkit logger
 logger = sgtk.platform.get_logger(__name__)
 
-class SgPublishHistoryModel(ShotgunModel):
+class SgPublishHistoryModel(QtGui.QStandardItemModel):
     """
     This model represents the version history for a publish.
     """
@@ -34,18 +30,25 @@ class SgPublishHistoryModel(ShotgunModel):
         """
         Constructor
         """
-        # folder icon
+        # Import the framework inside the constructor
+        shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
+        ShotgunModel = shotgun_model.ShotgunModel
+
+        # Call the superclass constructor
+        super(SgPublishHistoryModel, self).__init__(parent)
+
+        # Initialize instance variables and set up the model
         self._loading_icon = QtGui.QPixmap(":/res/loading_100x100.png")
         app = sgtk.platform.current_bundle()
         ShotgunModel.__init__(
             self,
             parent,
-            #download_thumbs=app.get_setting("download_thumbnails"),
             download_thumbs=True,
             schema_generation=2,
             bg_load_thumbs=True,
             bg_task_manager=bg_task_manager,
         )
+
 
     ############################################################################################
     # public interface

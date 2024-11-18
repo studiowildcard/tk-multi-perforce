@@ -18,7 +18,7 @@ configuration:
         description: If set to True then the app will establish a connection at
                      start-up and present the connection/password dialog to the
                      uesr if needed.
-        default_value: True
+        default_value: False
 
     desktop_app_only:
         type: bool
@@ -89,7 +89,7 @@ description: "This app provides common Perforce commands such as check-out and r
 
 # Required minimum versions for this item to run
 requires_shotgun_version:
-requires_core_version: "v0.14.43"
+requires_core_version: "v0.19.1"
 requires_engine_version:
 
 # the engines that this app can operate in:
@@ -97,7 +97,7 @@ supported_engines:
 
 # the frameworks required to run this app
 frameworks:
-    - {"name": "tk-framework-perforce", "version": "v0.x.x"}
+    - {"name": "tk-swc-framework-shotgunutils", "version": "v5.x.x", "minimum_version": "v5.2.1"}
     - {"name": "tk-framework-qtwidgets", "version": "v2.x.x"}
-    #- {"name": "tk-framework-shotgunutils", "version": "v5.x.x"}
-    - { "name": "tk-framework-shotgunutils", "version": "v5.x.x", "minimum_version": "v5.2.1" }
+    - {"name": "tk-framework-perforce", "version": "v0.x.x"}
+    - {"name": "tk-framework-swc", "version": "v1.x.x"}

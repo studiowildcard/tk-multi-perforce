@@ -15,55 +15,55 @@ import urllib
 
 from sgtk.platform.qt import QtCore, QtGui
 
-# import the shotgun_model and view modules from the shotgun utils framework
-shotgun_model = sgtk.platform.import_framework(
-    "tk-framework-shotgunutils", "shotgun_model"
-)
-shotgun_view = sgtk.platform.import_framework("tk-framework-qtwidgets", "views")
 
 from .ui.widget_publish_history import Ui_PublishHistoryWidget
 
 logger = sgtk.platform.get_logger(__name__)
 
-class PublishHistoryWidget(QtGui.QWidget):
+class SgPublishHistoryModel(QtGui.QStandardItemModel):
     """
-    Simple list item widget which hosts a square thumbnail, header text
-    and body text. It has a fixed size. Used with SgPublishHistoryDelegate
-    and used in the right hand side history UI.
+    Model class to handle publish history and facilitate interaction
+    with the UI for displaying thumbnails, headers, and body text.
+    Used with SgPublishHistoryDelegate in the right-hand side history UI.
     """
 
     def __init__(self, parent):
         """
-        Constructor
+        Constructor to initialize the model.
 
-        :param parent: QT parent object
+        :param parent: The QT parent object.
         """
-        QtGui.QWidget.__init__(self, parent)
+        # Import the framework inside the constructor to ensure valid context
+        self.shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 
-        # make sure this widget isn't shown
+
+        # Initialize the base class
+        super(SgPublishHistoryModel, self).__init__(parent)
+
+        # Ensure the widget is initially hidden
         self.setVisible(False)
 
-        # set up the UI
+        # Set up the UI components
         self.ui = Ui_PublishHistoryWidget()
         self.ui.setupUi(self)
 
-        # set up action menu
+        # Configure the action menu
         self._menu = QtGui.QMenu()
         self._actions = []
         self.ui.button.setMenu(self._menu)
         self.ui.button.setVisible(False)
 
-        # compute highlight colors
+        # Compute highlight colors for the UI
         highlight_col = self.palette().highlight().color()
-        self._highlight_str = "rgb(%s, %s, %s)" % (
+        self._highlight_str = "rgb({}, {}, {})".format(
             highlight_col.red(),
             highlight_col.green(),
-            highlight_col.blue(),
+            highlight_col.blue()
         )
-        self._transp_highlight_str = "rgba(%s, %s, %s, 25%%)" % (
+        self._transp_highlight_str = "rgba({}, {}, {}, 25%)".format(
             highlight_col.red(),
             highlight_col.green(),
-            highlight_col.blue(),
+            highlight_col.blue()
         )
 
     def set_actions(self, actions):
@@ -129,19 +129,29 @@ class PublishHistoryWidget(QtGui.QWidget):
         return QtCore.QSize(200, 90)
 
 
-class SgPublishHistoryDelegate(shotgun_view.EditSelectedWidgetDelegate):
+class SgPublishHistoryDelegate(QtGui.QStyledItemDelegate):
     """
-    Delegate which 'glues up' the Details Widget with a QT View.
+    Delegate class for managing the connection between the publish history model and the view.
     """
 
     def __init__(self, view, status_model, action_manager):
         """
         Constructor
 
-        :param view: The view where this delegate is being used
-        :param action_manager: Action manager instance
+        :param view: The view where this delegate is being used.
+        :param status_model: The status model instance.
+        :param action_manager: Action manager instance.
         """
-        shotgun_view.EditSelectedWidgetDelegate.__init__(self, view)
+        super(SgPublishHistoryDelegate, self).__init__(view)
+
+        # Import the framework within the constructor to ensure valid context
+        shotgun_view = sgtk.platform.import_framework("tk-framework-qtwidgets", "views")
+        self.EditSelectedWidgetDelegate = shotgun_view.EditSelectedWidgetDelegate
+
+        # Initialize the parent class from the imported module
+        self.EditSelectedWidgetDelegate.__init__(self, view)
+
+        # Set instance variables
         self._status_model = status_model
         self._action_manager = action_manager
 
@@ -169,7 +179,7 @@ class SgPublishHistoryDelegate(shotgun_view.EditSelectedWidgetDelegate):
         widget.set_selected(True)
 
         # set up the menu
-        sg_item = shotgun_model.get_sg_data(model_index)
+        sg_item = self.shotgun_model.get_sg_data(model_index)
         #self.log('>>>>> _on_before_selection model_index: {}'.format(model_index))
         #self.log('>>>>> _on_before_selection sg_item: {}'.format(sg_item))
 
@@ -208,7 +218,7 @@ class SgPublishHistoryDelegate(shotgun_view.EditSelectedWidgetDelegate):
         :param model_index: The model index to operate on
         :param style_options: QT style options
         """
-        icon = shotgun_model.get_sanitized_data(model_index, QtCore.Qt.DecorationRole)
+        icon = self.shotgun_model.get_sanitized_data(model_index, QtCore.Qt.DecorationRole)
         if icon:
             thumb = icon.pixmap(512)
             widget.set_thumbnail(thumb)
@@ -243,7 +253,7 @@ class SgPublishHistoryDelegate(shotgun_view.EditSelectedWidgetDelegate):
         # this is not totally clean separation of concerns, but
         # introduces a coupling between the delegate and the model.
         # but I guess that's inevitable here...
-        sg_item = shotgun_model.get_sg_data(model_index)
+        sg_item = self.shotgun_model.get_sg_data(model_index)
         # self.log('>>>>> _on_before_paint sg_item: {}'.format(sg_item))
 
         # First do the header - this is on the form

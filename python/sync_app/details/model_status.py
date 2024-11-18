@@ -7,18 +7,10 @@
 # By accessing, using, copying or modifying this work you indicate your
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
-
 import sgtk
-from sgtk.platform.qt import QtCore, QtGui
-
-# import the shotgun_model module from the shotgun utils framework
-shotgun_model = sgtk.platform.import_framework(
-    "tk-framework-shotgunutils", "shotgun_model"
-)
-ShotgunModel = shotgun_model.ShotgunModel
 
 
-class SgStatusModel(ShotgunModel):
+class SgStatusModel(sgtk.platform.qt.QtGui.QStandardItemModel):
     """
     This model represents status codes.
     """
@@ -27,14 +19,18 @@ class SgStatusModel(ShotgunModel):
         """
         Constructor
         """
-        # folder icon
-        ShotgunModel.__init__(
-            #self, parent, download_thumbs=False, bg_task_manager=bg_task_manager
-            self, parent, download_thumbs=True, bg_task_manager=bg_task_manager
-        )
+        # Import the framework here to ensure it runs in the app context
+        shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
+        ShotgunModel = shotgun_model.ShotgunModel
+
+        # Call the superclass constructor
+        super(SgStatusModel, self).__init__(parent)
+
+        # Initialize ShotgunModel within the constructor
+        self._shotgun_model = ShotgunModel(parent, download_thumbs=True, bg_task_manager=bg_task_manager)
         fields = ["bg_color", "icon", "code", "name"]
-        self._load_data("Status", [], ["code"], fields)
-        self._refresh_data()
+        self._shotgun_model._load_data("Status", [], ["code"], fields)
+        self._shotgun_model._refresh_data()
 
     ############################################################################################
     # public methods

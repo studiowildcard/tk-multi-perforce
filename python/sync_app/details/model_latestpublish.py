@@ -10,21 +10,12 @@
 
 from collections import defaultdict
 from sgtk.platform.qt import QtCore, QtGui
-
 import sgtk
 import datetime
 from . import loader_utils, constants
 from . import model_item_data
 
-# import the shotgun_model module from the shotgun utils framework
-shotgun_model = sgtk.platform.import_framework(
-    "tk-framework-shotgunutils", "shotgun_model"
-)
-ShotgunModel = shotgun_model.ShotgunModel
-
-
-class SgLatestPublishModel(ShotgunModel):
-
+class SgLatestPublishModel(QtGui.QStandardItemModel):
     """
     Model which handles the main spreadsheet view which displays the latest version of all
     publishes.
@@ -40,8 +31,16 @@ class SgLatestPublishModel(ShotgunModel):
 
     def __init__(self, parent, publish_type_model, bg_task_manager):
         """
-        Model which represents the latest publishes for an entity
+        Model which represents the latest publishes for an entity.
         """
+        # Import the framework inside the constructor to ensure it runs in a valid context
+        shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
+        ShotgunModel = shotgun_model.ShotgunModel
+
+        # Call the superclass constructor
+        super(SgLatestPublishModel, self).__init__(parent)
+
+        # Initialize attributes and set up the model
         self._publish_type_model = publish_type_model
         self._folder_icon = QtGui.QIcon(QtGui.QPixmap(":/res/folder_512x400.png"))
         self._loading_icon = QtGui.QIcon(QtGui.QPixmap(":/res/loading_512x400.png"))
@@ -49,11 +48,10 @@ class SgLatestPublishModel(ShotgunModel):
 
         app = sgtk.platform.current_bundle()
 
-        # init base class
+        # Initialize the ShotgunModel base class with specific settings
         ShotgunModel.__init__(
             self,
             parent,
-            #download_thumbs=app.get_setting("download_thumbnails"),
             download_thumbs=True,
             schema_generation=6,
             bg_load_thumbs=True,

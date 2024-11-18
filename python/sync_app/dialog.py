@@ -45,48 +45,46 @@ def show_dialog(app_instance, entities=None, specific_files=None):
         *ui.get("args"),
         **ui.get("kwargs"),
     )
-
+ # show_dialog(
+        #     app,
+        #     [
+        #         {"type": "Asset", "id": 4554},
+        #         {"type": "Asset", "id": 6166},
+        #         {"type": "Asset", "id": 6829},
+        #     ],
+        #     specific_files,
+        # )
 
 def open_sync_files_dialog(app, entity_type=None, entity_ids=None):
     """
-    Prepare assets to send to the P4 Sync window to process
+    Prepare assets to send to the P4 Sync window to process.
     """
     try:
         specific_files = False
         entities_to_sync = []
 
+        # Synchronize filesystem structure
         synclog = app.engine.sgtk.synchronize_filesystem_structure()
-        app.log_debug(f"Synced Folders: {synclog}")
+        # app.log_debug(f"Synced Folders: {synclog}")
 
+        # Process entities based on the provided type
         if entity_type:
-            # if a single task were selected, or launched from a task detail page
             if entity_type == "Task":
                 tasks = app.shotgun.find(
                     entity_type, [["id", "in", entity_ids]], ["entity"]
                 )
                 entities_to_sync = entities_from_tasks(app, tasks)
-
-            # if assets were selected, make sure we have all the top level assets from child selections
             elif entity_type == "Asset":
                 ids = []
                 assets = app.shotgun.find(
                     entity_type, [["id", "in", entity_ids]], ["sg_asset_parent", "code"]
                 )
-                parent_asset_ids = ids.extend(
-                    [
-                        i.get("sg_asset_parent").get("id")
-                        for i in assets
-                        if i.get("sg_asset_parent")
-                    ]
-                )
-                asset_ids = ids.extend(
+                ids.extend(
                     [i.get("id") for i in assets if not i.get("sg_asset_parent")]
                 )
                 entities_to_sync = [
                     {"type": entity_type, "id": id} for id in list(set(ids))
                 ]
-                # app.log_info(entities_to_sync)
-
             elif entity_type == "PublishedFile":
                 specific_files = True
                 pfiles = app.shotgun.find(
@@ -95,41 +93,12 @@ def open_sync_files_dialog(app, entity_type=None, entity_ids=None):
                     ["entity", "path_cache", "path"],
                 )
                 entities_to_sync = pfiles
-                # app.log_info(entities_to_sync)
-
-            elif entity_type == "Sequence":
-                ids = []
-                asset_ids = []
-                seqs = app.shotgun.find(
-                    "Sequence", [["id", "in", entity_ids]], ["assets"]
-                )
-                for seq in seqs:
-                    asset_ids.extend([i.get("id") for i in seq.get("assets")])
-                assets = app.shotgun.find(
-                    "Asset", [["id", "in", asset_ids]], ["sg_asset_parent", "code"]
-                )
-                parent_asset_ids = ids.extend(
-                    [
-                        i.get("sg_asset_parent").get("id")
-                        for i in assets
-                        if i.get("sg_asset_parent")
-                    ]
-                )
-                asset_ids = ids.extend(
-                    [i.get("id") for i in assets if not i.get("sg_asset_parent")]
-                )
-                entities_to_sync = [
-                    {"type": "Asset", "id": id} for id in list(set(ids))
-                ]
-
-            # for other entity types, return the list of entity objects unmodified
             else:
                 entities_to_sync = [
                     {"type": entity_type, "id": id} for id in entity_ids
                 ]
-
-        else:  # if user launching without context
-            # we look for all project tasks assigned to the current user
+        else:
+            # Default behavior: fetch user's tasks if no specific context
             user = app.context.user
             user_tasks = app.context.sgtk.shotgun.find(
                 "Task",
@@ -140,28 +109,26 @@ def open_sync_files_dialog(app, entity_type=None, entity_ids=None):
                 ],
                 ["entity", "sg_status_list"],
             )
-
-            # look through all the possible entity links to these tasks, and keep all the unique ones to send to the UI
-            user_assets = []
             entities_to_sync = entities_from_tasks(app, user_tasks)
 
-        p4_fw = sgtk.platform.get_framework("tk-framework-perforce")
+        # Import the framework using the app instance to avoid errors
+        try:
+            p4_fw = sgtk.platform.get_framework("tk-framework-perforce")
+            # p4 = p4_fw.connection.connect()
 
-        # show_dialog(
-        #     app,
-        #     [
-        #         {"type": "Asset", "id": 4554},
-        #         {"type": "Asset", "id": 6166},
-        #         {"type": "Asset", "id": 6829},
-        #     ],
-        #     specific_files,
-        # )
+        except Exception as e:
+            logger.error("Failed to import tk-framework-perforce module. Check if the framework is properly installed and configured.")
+
+            return
+
+
+        # Call show_dialog with the processed entities
         show_dialog(app, entities_to_sync, specific_files)
     except Exception:
         import traceback
-
         app.log_error("Failed to Open Sync dialog!")
         app.log_error(traceback.format_exc())
+
 
 
 def entities_from_tasks(app, tasks):

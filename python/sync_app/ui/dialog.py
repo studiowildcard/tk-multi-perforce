@@ -10,8 +10,7 @@ from functools import partial
 import sgtk
 
 from sgtk.platform.qt import QtCore, QtGui
-from tank.platform.qt import QtCore, QtGui
-from tank.platform.qt5 import QtWidgets
+
 
 from ..workers.sync_worker import SyncWorker, AssetInfoGatherWorker
 from ..utils.local_workspace import open_browser
@@ -30,67 +29,48 @@ from ..details.loader_action_manager import LoaderActionManager
 
 logger = sgtk.platform.get_logger(__name__)
 
-# import frameworks
-shotgun_model = sgtk.platform.import_framework(
-    "tk-framework-shotgunutils", "shotgun_model"
-)
-settings = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
-help_screen = sgtk.platform.import_framework("tk-framework-qtwidgets", "help_screen")
-overlay_widget = sgtk.platform.import_framework(
-    "tk-framework-qtwidgets", "overlay_widget"
-)
-shotgun_search_widget = sgtk.platform.import_framework(
-    "tk-framework-qtwidgets", "shotgun_search_widget"
-)
-task_manager = sgtk.platform.import_framework(
-    "tk-framework-shotgunutils", "task_manager"
-)
-shotgun_globals = sgtk.platform.import_framework(
-    "tk-framework-shotgunutils", "shotgun_globals"
-)
-
-ShotgunModelOverlayWidget = overlay_widget.ShotgunModelOverlayWidget
 
 
-# @method_decorator(trace)
 class Ui_Dialog(Ui_Generic):
     """
     Description:
         A class for the construction of sync app UI.
-
     """
 
     def __init__(self, parent, app, **kwargs):
-
         """
-        Description:
-            Construction of sync UI. Note that order of init matters
+        Constructor for the sync UI dialog.
         """
-
         self.progress_handler = None  # Init a progress handler
         self.app = app
         super(Ui_Dialog, self).__init__(parent, **kwargs)
         self.app.ui = self  # set public property to UI
-        self.app.setup()  # since we use SG to handle our UI display, we defer the app init until the UI is ready.
+        self.app.setup()  # Defer the app init until the UI is ready.
+
+        # Import frameworks within the constructor where the current bundle is valid
+        shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
+        settings = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
+        help_screen = sgtk.platform.import_framework("tk-framework-qtwidgets", "help_screen")
+        overlay_widget = sgtk.platform.import_framework("tk-framework-qtwidgets", "overlay_widget")
+        shotgun_search_widget = sgtk.platform.import_framework("tk-framework-qtwidgets", "shotgun_search_widget")
+        task_manager = sgtk.platform.import_framework("tk-framework-shotgunutils", "task_manager")
+        shotgun_globals = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_globals")
 
         self._action_manager = LoaderActionManager()
         self._sg = None
-
         self._sg_data = {}
         self._row_data = {}
-
         self._key = None
         self._id = 0
         self.dir_path = tempfile.mkdtemp()
-        #
-        # create a background task manager
+
+        # Create a background task manager
         self._task_manager = task_manager.BackgroundTaskManager(
             self, start_processing=True, max_threads=2
         )
         shotgun_globals.register_bg_task_manager(self._task_manager)
 
-        # hook a helper model tracking status codes so we
-        # can use those in the UI
+        # Hook a helper model tracking status codes for UI use
         self._status_model = SgStatusModel(self, self._task_manager)
         self.init_details_panel()
 
@@ -141,7 +121,7 @@ class Ui_Dialog(Ui_Generic):
         # self.log_window.verticalScrollBar().setValue(self.log_window.verticalScrollBar().maximum())
         """
 
-        self.log_window = QtWidgets.QTextBrowser()
+        self.log_window = QtGui.QTextBrowser()
         self.log_window.verticalScrollBar().setValue(self.log_window.verticalScrollBar().maximum())
         self.log_window.setMinimumHeight(200)
 

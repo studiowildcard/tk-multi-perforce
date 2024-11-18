@@ -14,6 +14,7 @@ General Perforce connection commands
 
 import os
 import sgtk
+import sys
 from sgtk import TankError
 import traceback
 
@@ -144,19 +145,83 @@ class MultiPerforce(sgtk.platform.Application):
         tk_multi_perforce = self.import_module("tk_multi_perforce")
         tk_multi_perforce.show_pending_publishes()
 
-    def sync_files(self, entity_type=None, entity_ids=None):
+    def sync_files_original(self, entity_type=None, entity_ids=None):
         """
         Show Perforce Sync Status Window
         """
         try:
+            self.log_debug("Importing tk_multi_perforce...")
             tk_multi_perforce = self.import_module("tk_multi_perforce")
             tk_multi_perforce.connect(self)
             # tk_multi_perforce.open_sync_files_dialog(self, entity_type, entity_ids)
 
-            app_payload = self.import_module("sync_app")
-            app_payload.dialog.open_sync_files_dialog(self, entity_type, entity_ids)
+            #app_payload = self.import_module("sync_app")
+            #app_payload.dialog.open_sync_files_dialog(self, entity_type, entity_ids)
+
+            try:
+                # Dynamically set the module path for compatibility
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                python_dir = os.path.join(current_dir, 'python')
+
+                if python_dir not in sys.path:
+                    sys.path.append(python_dir)
+
+                # Import sync_app.dialog after ensuring the path is set
+                self.log_debug("Importing sync_app...")
+                from sync_app import dialog
+                dialog.open_sync_files_dialog(self, entity_type, entity_ids)
+
+            except:
+                self.handle_connection_error(force_banner=True)
         except:
             self.handle_connection_error(force_banner=True)
+
+    def sync_files(self, entity_type=None, entity_ids=None):
+        """
+        Show Perforce Sync Status Window.
+        """
+        try:
+            # Log the start of the method
+            self.log_debug("Starting the sync_files process...")
+
+            # Attempt to import the tk_multi_perforce module
+            self.log_debug("Importing tk_multi_perforce module...")
+            tk_multi_perforce = self.import_module("tk_multi_perforce")
+            tk_multi_perforce.connect(self)
+            self.log_debug("Successfully connected to Perforce through tk_multi_perforce.")
+
+            # Ensure the correct path is set for sync_app imports
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            python_dir = os.path.join(current_dir, 'python')
+
+            if python_dir not in sys.path:
+                self.log_debug(f"Appending {python_dir} to sys.path...")
+                sys.path.append(python_dir)
+
+            # Import sync_app and handle the dialog
+            self.log_debug("Importing sync_app.dialog module...")
+            from sync_app import dialog
+            dialog.open_sync_files_dialog(self, entity_type, entity_ids)
+            self.log_debug("Successfully opened the sync dialog.")
+
+        except TankError as e:
+            # Log specific TankError exceptions
+            self.log_error(f"Failed to import tk_multi_perforce module: {e}")
+            self.handle_connection_error(force_banner=True)
+
+        except ImportError as e:
+            # Log any ImportError exceptions
+            self.log_error(f"ImportError: {e}. Check if 'sync_app' is correctly located.")
+            self.handle_connection_error(force_banner=True)
+
+        except Exception as e:
+            # Log any other unexpected errors with a detailed traceback
+            self.log_error(f"Unexpected error occurred: {traceback.format_exc()}")
+            self.handle_connection_error(force_banner=True)
+
+        finally:
+            # Log completion of the method, whether successful or not
+            self.log_debug("sync_files method completed.")
 
     def __connect_on_startup(self):
         """
