@@ -66,7 +66,8 @@ class MultiPerforce(sgtk.platform.Application):
                 "<br>See <b>tk-desktop</b> <a href='file:///{}'>logs.</a> locating lines for [<i>{}</i>]<br>".format(log_location, self.name)
             force_banner = False
             if force_banner:
-                self.engine._project_comm.call_no_response("update_banners", self.banner_error_message)
+                #self.engine._project_comm.call_no_response("update_banners", self.banner_error_message)
+                pass
             else:
                 os.environ['SGTK_DESKTOP_PROJECT_BANNER_MESSAGE'] = self.banner_error_message
 
@@ -76,11 +77,12 @@ class MultiPerforce(sgtk.platform.Application):
                     log_location, self.name
                 )
             )
-
+            force_banner = False
             if force_banner:
-                self.engine._project_comm.call_no_response(
-                    "update_banners", banner_message
-                )
+                # self.engine._project_comm.call_no_response(
+                #    "update_banners", banner_message
+                #)
+                pass
             else:
                 os.environ["SGTK_DESKTOP_PROJECT_BANNER_MESSAGE"] = banner_message
 
@@ -96,9 +98,10 @@ class MultiPerforce(sgtk.platform.Application):
             self.banner_success_message = "<br><center><font color='blue'><b>Success!</b></font> Connection to Perforce server is successful." \
                              "<br>See <b>tk-desktop</b> <a href='file:///{}'>logs.</a> locating lines for [<i>{}</i>]<br>".format(
                 log_location, self.name)
-
+            force_banner = False
             if force_banner:
-                self.engine._project_comm.call_no_response("update_banners", self.banner_success_message)
+                #self.engine._project_comm.call_no_response("update_banners", self.banner_success_message)
+                pass
             else:
                 os.environ['SGTK_DESKTOP_PROJECT_BANNER_MESSAGE'] = self.banner_success_message
 
